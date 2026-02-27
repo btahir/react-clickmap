@@ -1,0 +1,69 @@
+{
+  "name": "react-clickmap",
+  "version": "0.1.0",
+  "description": "Privacy-first heatmaps for React. Your data, your database, zero cloud.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles/overlay.css"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "./dist/styles/overlay.css"
+  ],
+  "keywords": [
+    "react",
+    "clickmap",
+    "heatmap",
+    "analytics",
+    "privacy",
+    "self-hosted"
+  ],
+  "peerDependencies": {
+    "react": ">=18.2.0",
+    "react-dom": ">=18.2.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "validate:pkg": "publint && attw .",
+    "budget": "node ./scripts/check-bundle-budget.mjs",
+    "release": "pnpm run build && changeset publish"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.17.4",
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.1.0",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@vitest/browser": "^4.0.7",
+    "@vitest/coverage-v8": "^4.0.7",
+    "@vitest/ui": "^4.0.7",
+    "biome": "npm:@biomejs/biome@^2.3.0",
+    "changeset": "npm:@changesets/cli@^2.29.7",
+    "jsdom": "^26.1.0",
+    "playwright": "^1.54.2",
+    "publint": "^0.3.15",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2",
+    "vitest": "^4.0.7"
+  }
+}

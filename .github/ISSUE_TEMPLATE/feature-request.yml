@@ -1,0 +1,12 @@
+name: Feature request
+description: Suggest a new capability
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What should be added?
+    validations:
+      required: true

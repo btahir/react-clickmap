@@ -1,0 +1,13 @@
+{
+  "name": "@react-clickmap/docs",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "echo 'docs build placeholder'",
+    "check": "echo 'docs check placeholder'",
+    "check:fix": "echo 'docs check:fix placeholder'",
+    "test": "echo 'docs test placeholder'",
+    "test:run": "echo 'docs test:run placeholder'"
+  }
+}

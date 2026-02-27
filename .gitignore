@@ -1,1 +1,7 @@
-PLAN.md
+node_modules
+.pnpm-store
+coverage
+dist
+*.log
+.DS_Store
+.next

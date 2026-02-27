@@ -1,0 +1,19 @@
+name: Bug report
+description: Report a defect in react-clickmap
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Minimal repro steps.
+    validations:
+      required: true
