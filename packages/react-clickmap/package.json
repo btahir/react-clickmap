@@ -11,17 +11,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./styles.css": "./dist/styles/overlay.css"
+    }
   },
   "files": [
     "dist",
     "README.md",
     "LICENSE"
   ],
-  "sideEffects": [
-    "./dist/styles/overlay.css"
-  ],
+  "sideEffects": false,
   "keywords": [
     "react",
     "clickmap",
