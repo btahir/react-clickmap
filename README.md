@@ -1,5 +1,10 @@
 # react-clickmap
 
+[![CI](https://github.com/btahir/react-clickmap/actions/workflows/ci.yml/badge.svg)](https://github.com/btahir/react-clickmap/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/react-clickmap.svg)](https://www.npmjs.com/package/react-clickmap)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![npm downloads](https://img.shields.io/npm/dm/react-clickmap.svg)](https://www.npmjs.com/package/react-clickmap)
+
 Privacy-first heatmaps for React. Your data, your database, zero cloud.
 
 `react-clickmap` captures click, scroll, and pointer-move behavior and renders heatmap overlays without sending data to third-party analytics vendors.
@@ -48,7 +53,6 @@ export function App() {
 
 - Library: `packages/react-clickmap`
 - Docs scaffold: `apps/docs`
-- Strategy and milestones: `PLAN-REFINED.md`
 
 ## Development
 
@@ -59,6 +63,6 @@ pnpm test:run
 pnpm build
 ```
 
-## Notes
+## Roadmap
 
-This environment is currently offline, so dependency installation and runtime validation require a network-enabled environment.
+See [issues](https://github.com/btahir/react-clickmap/issues) for active milestones and feature tracking.

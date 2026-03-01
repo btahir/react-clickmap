@@ -3,6 +3,19 @@
   "version": "0.1.0",
   "description": "Privacy-first heatmaps for React. Your data, your database, zero cloud.",
   "license": "MIT",
+  "homepage": "https://github.com/btahir/react-clickmap#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/btahir/react-clickmap.git",
+    "directory": "packages/react-clickmap"
+  },
+  "bugs": {
+    "url": "https://github.com/btahir/react-clickmap/issues"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/btahir"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
