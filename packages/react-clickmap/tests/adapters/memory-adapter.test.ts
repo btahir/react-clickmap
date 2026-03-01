@@ -3,6 +3,15 @@ import { memoryAdapter } from "../../src/adapters/memory-adapter";
 import { createEvent } from "../fixtures";
 
 describe("memoryAdapter", () => {
+  it("exposes capability metadata", () => {
+    const adapter = memoryAdapter();
+    expect(adapter.capabilities).toEqual({
+      supportsAggregation: false,
+      supportsRetention: false,
+      supportsIdempotency: false,
+    });
+  });
+
   it("saves and loads events by query", async () => {
     const adapter = memoryAdapter();
 

@@ -14,6 +14,7 @@ export type { GradientMap, HeatmapRenderMode, RenderPoint } from "./render/types
 export type { ScrollDepthProps } from "./scroll-depth";
 export { ScrollDepth } from "./scroll-depth";
 export type {
+  AdapterCapabilities,
   AggregatedBin,
   AggregatedHeatmapPayload,
   CaptureEvent,

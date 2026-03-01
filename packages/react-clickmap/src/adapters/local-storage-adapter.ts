@@ -42,6 +42,12 @@ export function localStorageAdapter(options: LocalStorageAdapterOptions = {}): C
   const fallback = memoryAdapter();
 
   return {
+    capabilities: {
+      supportsAggregation: false,
+      supportsRetention: false,
+      supportsIdempotency: false,
+    },
+
     async save(events: CaptureEvent[]): Promise<void> {
       if (typeof window === "undefined") {
         await fallback.save(events);

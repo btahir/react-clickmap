@@ -3,6 +3,15 @@ import { fetchAdapter } from "../../src/adapters/fetch-adapter";
 import { createEvent } from "../fixtures";
 
 describe("fetchAdapter", () => {
+  it("exposes capability metadata", () => {
+    const adapter = fetchAdapter({ endpoint: "/api/clickmap", fetchImpl: vi.fn() });
+    expect(adapter.capabilities).toEqual({
+      supportsAggregation: false,
+      supportsRetention: false,
+      supportsIdempotency: false,
+    });
+  });
+
   it("posts events with keepalive fallback", async () => {
     const fetchImpl = vi.fn(async () => new Response(null, { status: 200 }));
     const adapter = fetchAdapter({ endpoint: "/api/clickmap", fetchImpl, preferBeacon: false });

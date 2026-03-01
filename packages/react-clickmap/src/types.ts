@@ -99,7 +99,14 @@ export interface AggregatedHeatmapPayload {
   totalEvents: number;
 }
 
+export interface AdapterCapabilities {
+  supportsAggregation: boolean;
+  supportsRetention: boolean;
+  supportsIdempotency: boolean;
+}
+
 export interface ClickmapAdapter {
+  capabilities?: AdapterCapabilities;
   save(events: CaptureEvent[]): Promise<void>;
   load(query: HeatmapQuery): Promise<CaptureEvent[]>;
   deleteEvents?(query: HeatmapQuery): Promise<number>;

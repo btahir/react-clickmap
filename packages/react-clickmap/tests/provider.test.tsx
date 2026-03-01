@@ -63,4 +63,54 @@ describe("ClickmapProvider", () => {
       expect(adapter.inspect()).toHaveLength(0);
     });
   });
+
+  it("starts capturing after consent is granted", async () => {
+    const adapter = memoryAdapter();
+
+    const { rerender } = render(
+      <ClickmapProvider
+        adapter={adapter}
+        capture={["click"]}
+        maxBatchSize={1}
+        consentRequired
+        hasConsent={false}
+      >
+        <Probe />
+      </ClickmapProvider>,
+    );
+
+    fireEvent.pointerUp(window, {
+      button: 0,
+      clientX: 24,
+      clientY: 24,
+      pointerType: "mouse",
+    });
+
+    await waitFor(() => {
+      expect(adapter.inspect()).toHaveLength(0);
+    });
+
+    rerender(
+      <ClickmapProvider
+        adapter={adapter}
+        capture={["click"]}
+        maxBatchSize={1}
+        consentRequired
+        hasConsent
+      >
+        <Probe />
+      </ClickmapProvider>,
+    );
+
+    fireEvent.pointerUp(window, {
+      button: 0,
+      clientX: 30,
+      clientY: 30,
+      pointerType: "mouse",
+    });
+
+    await waitFor(() => {
+      expect(adapter.inspect().length).toBeGreaterThan(0);
+    });
+  });
 });

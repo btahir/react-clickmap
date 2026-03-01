@@ -203,6 +203,12 @@ export function createSupabaseAdapter(options: SupabaseAdapterOptions): Clickmap
   const headers = buildBaseHeaders(options);
 
   return {
+    capabilities: {
+      supportsAggregation: true,
+      supportsRetention: true,
+      supportsIdempotency: true,
+    },
+
     async save(events: CaptureEvent[]): Promise<void> {
       if (events.length === 0) {
         return;

@@ -69,6 +69,12 @@ export function fetchAdapter(options: FetchAdapterOptions): ClickmapAdapter {
   const maxPayloadBytes = options.maxPayloadBytes ?? DEFAULT_MAX_KEEPALIVE_BYTES;
 
   return {
+    capabilities: {
+      supportsAggregation: false,
+      supportsRetention: false,
+      supportsIdempotency: false,
+    },
+
     async save(events: CaptureEvent[]): Promise<void> {
       if (events.length === 0) {
         return;

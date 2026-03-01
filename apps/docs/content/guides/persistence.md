@@ -18,3 +18,26 @@ Core event identity fields:
 - optional `userId`
 
 Use `deleteEvents` for scoped data deletion workflows.
+
+## Retention guidance
+
+Recommended defaults:
+
+- Raw event retention: 30 to 90 days
+- Daily aggregates: 12 to 18 months
+- Session metadata: 30 to 90 days
+
+Apply retention at the storage layer (SQL cron/job policy) to keep the runtime package simple.
+
+## Deletion flow example
+
+Use adapter-level scoped delete operations for compliance requests:
+
+```ts
+await adapter.deleteEvents?.({
+  projectId: "acme-web",
+  userId: "user-123",
+});
+```
+
+For SQL backends, keep `projectId` mandatory in deletes to avoid broad accidental wipes.

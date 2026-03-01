@@ -18,6 +18,12 @@ Use:
 
 When consent is revoked, capture stops on provider reconfiguration.
 
+Grant/revoke behavior:
+
+- `hasConsent = false`: no new listeners start, no new events captured.
+- `hasConsent = true`: capture starts again on provider reconfiguration.
+- On stop/unload paths, queued events are drained best-effort.
+
 ## Data minimization recommendations
 
 - Keep selector masking enabled for form-like inputs.

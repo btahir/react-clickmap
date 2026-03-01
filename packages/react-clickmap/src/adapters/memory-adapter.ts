@@ -49,6 +49,12 @@ export function memoryAdapter(seedEvents: CaptureEvent[] = []): MemoryAdapter {
   const events: CaptureEvent[] = [...seedEvents];
 
   return {
+    capabilities: {
+      supportsAggregation: false,
+      supportsRetention: false,
+      supportsIdempotency: false,
+    },
+
     async save(captureEvents: CaptureEvent[]): Promise<void> {
       events.push(...captureEvents);
     },

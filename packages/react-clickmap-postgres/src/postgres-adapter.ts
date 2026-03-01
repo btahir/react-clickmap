@@ -239,6 +239,12 @@ export function createPostgresAdapter(options: PostgresAdapterOptions): Clickmap
   const table = assertTableName(options.tableName ?? "clickmap_events");
 
   return {
+    capabilities: {
+      supportsAggregation: true,
+      supportsRetention: true,
+      supportsIdempotency: true,
+    },
+
     async save(events: CaptureEvent[]): Promise<void> {
       if (events.length === 0) {
         return;
