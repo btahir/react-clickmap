@@ -60,6 +60,8 @@ function createProgram(gl: WebGLRenderingContext): WebGLProgram {
 
   const program = gl.createProgram();
   if (!program) {
+    gl.deleteShader(vertexShader);
+    gl.deleteShader(fragmentShader);
     throw new Error("react-clickmap: Unable to create WebGL program");
   }
 
@@ -67,8 +69,16 @@ function createProgram(gl: WebGLRenderingContext): WebGLProgram {
   gl.attachShader(program, fragmentShader);
   gl.linkProgram(program);
 
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+  const didLink = gl.getProgramParameter(program, gl.LINK_STATUS);
+
+  gl.detachShader(program, vertexShader);
+  gl.detachShader(program, fragmentShader);
+  gl.deleteShader(vertexShader);
+  gl.deleteShader(fragmentShader);
+
+  if (!didLink) {
     const info = gl.getProgramInfoLog(program) ?? "unknown link error";
+    gl.deleteProgram(program);
     throw new Error(`react-clickmap: Failed to link WebGL program: ${info}`);
   }
 
@@ -78,52 +88,39 @@ function createProgram(gl: WebGLRenderingContext): WebGLProgram {
 export class WebGLRenderer implements Renderer {
   private readonly canvas: HTMLCanvasElement;
   private readonly gl: WebGLRenderingContext;
-  private readonly program: WebGLProgram;
-  private readonly positionBuffer: WebGLBuffer;
-  private readonly weightBuffer: WebGLBuffer;
-  private readonly positionAttribute: number;
-  private readonly weightAttribute: number;
-  private readonly resolutionUniform: WebGLUniformLocation;
-  private readonly pointSizeUniform: WebGLUniformLocation;
-  private readonly opacityUniform: WebGLUniformLocation;
+
+  private program: WebGLProgram | undefined;
+  private positionBuffer: WebGLBuffer | undefined;
+  private weightBuffer: WebGLBuffer | undefined;
+  private positionAttribute = -1;
+  private weightAttribute = -1;
+  private resolutionUniform: WebGLUniformLocation | undefined;
+  private pointSizeUniform: WebGLUniformLocation | undefined;
+  private opacityUniform: WebGLUniformLocation | undefined;
+
+  private isContextLost = false;
 
   constructor(canvas: HTMLCanvasElement) {
-    const gl = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
-    if (!gl) {
+    const context =
+      (canvas.getContext("webgl2") as WebGLRenderingContext | null) ?? canvas.getContext("webgl");
+
+    if (!context) {
       throw new Error("react-clickmap: WebGL is unavailable in this browser context");
     }
 
-    const program = createProgram(gl);
-
-    const positionBuffer = gl.createBuffer();
-    const weightBuffer = gl.createBuffer();
-
-    if (!positionBuffer || !weightBuffer) {
-      throw new Error("react-clickmap: Unable to create WebGL buffers");
-    }
-
-    const positionAttribute = gl.getAttribLocation(program, "a_position");
-    const weightAttribute = gl.getAttribLocation(program, "a_weight");
-
-    const resolutionUniform = gl.getUniformLocation(program, "u_resolution");
-    const pointSizeUniform = gl.getUniformLocation(program, "u_pointSize");
-    const opacityUniform = gl.getUniformLocation(program, "u_opacity");
-
-    if (!resolutionUniform || !pointSizeUniform || !opacityUniform) {
-      throw new Error("react-clickmap: Missing required WebGL uniforms");
-    }
-
     this.canvas = canvas;
-    this.gl = gl;
-    this.program = program;
-    this.positionBuffer = positionBuffer;
-    this.weightBuffer = weightBuffer;
-    this.positionAttribute = positionAttribute;
-    this.weightAttribute = weightAttribute;
-    this.resolutionUniform = resolutionUniform;
-    this.pointSizeUniform = pointSizeUniform;
-    this.opacityUniform = opacityUniform;
+    this.gl = context;
 
+    this.handleContextLost = this.handleContextLost.bind(this);
+    this.handleContextRestored = this.handleContextRestored.bind(this);
+
+    this.canvas.addEventListener("webglcontextlost", this.handleContextLost as EventListener);
+    this.canvas.addEventListener(
+      "webglcontextrestored",
+      this.handleContextRestored as EventListener,
+    );
+
+    this.initializeResources();
     this.resize(canvas.width, canvas.height);
   }
 
@@ -145,7 +142,18 @@ export class WebGLRenderer implements Renderer {
     this.resize(options.width, options.height);
     this.clear();
 
-    if (points.length === 0) {
+    if (this.isContextLost || points.length === 0) {
+      return;
+    }
+
+    if (
+      !this.program ||
+      !this.positionBuffer ||
+      !this.weightBuffer ||
+      !this.resolutionUniform ||
+      !this.pointSizeUniform ||
+      !this.opacityUniform
+    ) {
       return;
     }
 
@@ -189,9 +197,80 @@ export class WebGLRenderer implements Renderer {
   }
 
   dispose(): void {
-    const gl = this.gl;
-    gl.deleteBuffer(this.positionBuffer);
-    gl.deleteBuffer(this.weightBuffer);
-    gl.deleteProgram(this.program);
+    this.canvas.removeEventListener("webglcontextlost", this.handleContextLost as EventListener);
+    this.canvas.removeEventListener(
+      "webglcontextrestored",
+      this.handleContextRestored as EventListener,
+    );
+    this.disposeResources();
+  }
+
+  private handleContextLost(event: Event): void {
+    event.preventDefault();
+    this.isContextLost = true;
+  }
+
+  private handleContextRestored(): void {
+    this.isContextLost = false;
+    this.initializeResources();
+  }
+
+  private initializeResources(): void {
+    this.disposeResources();
+
+    const program = createProgram(this.gl);
+    const positionBuffer = this.gl.createBuffer();
+    const weightBuffer = this.gl.createBuffer();
+
+    if (!positionBuffer || !weightBuffer) {
+      this.gl.deleteProgram(program);
+      throw new Error("react-clickmap: Unable to create WebGL buffers");
+    }
+
+    const positionAttribute = this.gl.getAttribLocation(program, "a_position");
+    const weightAttribute = this.gl.getAttribLocation(program, "a_weight");
+
+    const resolutionUniform = this.gl.getUniformLocation(program, "u_resolution");
+    const pointSizeUniform = this.gl.getUniformLocation(program, "u_pointSize");
+    const opacityUniform = this.gl.getUniformLocation(program, "u_opacity");
+
+    if (!resolutionUniform || !pointSizeUniform || !opacityUniform) {
+      this.gl.deleteBuffer(positionBuffer);
+      this.gl.deleteBuffer(weightBuffer);
+      this.gl.deleteProgram(program);
+      throw new Error("react-clickmap: Missing required WebGL uniforms");
+    }
+
+    this.program = program;
+    this.positionBuffer = positionBuffer;
+    this.weightBuffer = weightBuffer;
+    this.positionAttribute = positionAttribute;
+    this.weightAttribute = weightAttribute;
+    this.resolutionUniform = resolutionUniform;
+    this.pointSizeUniform = pointSizeUniform;
+    this.opacityUniform = opacityUniform;
+  }
+
+  private disposeResources(): void {
+    if (this.positionBuffer) {
+      this.gl.deleteBuffer(this.positionBuffer);
+      this.positionBuffer = undefined;
+    }
+
+    if (this.weightBuffer) {
+      this.gl.deleteBuffer(this.weightBuffer);
+      this.weightBuffer = undefined;
+    }
+
+    if (this.program) {
+      this.gl.deleteProgram(this.program);
+      this.program = undefined;
+    }
+
+    this.resolutionUniform = undefined;
+    this.pointSizeUniform = undefined;
+    this.opacityUniform = undefined;
+    this.positionAttribute = -1;
+    this.weightAttribute = -1;
   }
 }

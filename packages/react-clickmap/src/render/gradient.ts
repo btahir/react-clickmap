@@ -7,6 +7,8 @@ export const DEFAULT_GRADIENT: GradientMap = {
   1.0: "#ff0000",
 };
 
+const PALETTE_CACHE = new Map<string, Uint8ClampedArray>();
+
 export function normalizeGradientStops(gradient: GradientMap): Array<[number, string]> {
   return Object.entries(gradient)
     .map(([stop, color]) => [Number(stop), color] as [number, string])
@@ -17,6 +19,15 @@ export function normalizeGradientStops(gradient: GradientMap): Array<[number, st
 export function buildGradientPalette(gradient: GradientMap): Uint8ClampedArray {
   if (typeof document === "undefined") {
     return new Uint8ClampedArray(256 * 4);
+  }
+
+  const cacheKey = normalizeGradientStops(gradient)
+    .map(([stop, color]) => `${stop}:${color}`)
+    .join("|");
+
+  const cached = PALETTE_CACHE.get(cacheKey);
+  if (cached) {
+    return cached;
   }
 
   const canvas = document.createElement("canvas");
@@ -38,7 +49,9 @@ export function buildGradientPalette(gradient: GradientMap): Uint8ClampedArray {
   context.fillStyle = colorGradient;
   context.fillRect(0, 0, 256, 1);
 
-  return context.getImageData(0, 0, 256, 1).data;
+  const palette = context.getImageData(0, 0, 256, 1).data;
+  PALETTE_CACHE.set(cacheKey, palette);
+  return palette;
 }
 
 export function paletteColorAt(

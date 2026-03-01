@@ -30,6 +30,8 @@ export function HeatmapThumbnail({
   className,
 }: HeatmapThumbnailProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const rendererRef = useRef<ReturnType<typeof createRenderer> | null>(null);
+
   const query = useMemo<HeatmapQuery>(() => {
     const nextQuery: HeatmapQuery = {};
 
@@ -52,7 +54,20 @@ export function HeatmapThumbnail({
       return;
     }
 
-    const renderer = createRenderer(canvas, { preferWebGL: false });
+    rendererRef.current = createRenderer(canvas, { preferWebGL: false });
+
+    return () => {
+      rendererRef.current?.dispose();
+      rendererRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer) {
+      return;
+    }
+
     const points = toRenderPoints(data);
 
     renderer.render(points, {
@@ -63,10 +78,6 @@ export function HeatmapThumbnail({
       opacity,
       gradient,
     });
-
-    return () => {
-      renderer.dispose();
-    };
   }, [data, gradient, height, opacity, radius, width]);
 
   return (

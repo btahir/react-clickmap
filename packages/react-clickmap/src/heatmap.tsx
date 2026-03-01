@@ -125,9 +125,12 @@ export function Heatmap({
     };
 
     resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(document.documentElement);
     window.addEventListener("resize", resize);
 
     return () => {
+      observer.disconnect();
       window.removeEventListener("resize", resize);
     };
   }, []);
@@ -139,6 +142,8 @@ export function Heatmap({
     }
 
     if (type === "scrollmap") {
+      rendererRef.current?.dispose();
+      rendererRef.current = null;
       const bands = summarizeScrollDepth(data);
       drawScrollmap(canvas, bands, opacity);
       return;
