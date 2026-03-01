@@ -1,6 +1,5 @@
 # react-clickmap
 
-[![CI](https://github.com/btahir/react-clickmap/actions/workflows/ci.yml/badge.svg)](https://github.com/btahir/react-clickmap/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/react-clickmap.svg)](https://www.npmjs.com/package/react-clickmap)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![npm downloads](https://img.shields.io/npm/dm/react-clickmap.svg)](https://www.npmjs.com/package/react-clickmap)
