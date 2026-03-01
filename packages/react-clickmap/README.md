@@ -9,6 +9,8 @@ Privacy-first heatmaps for React. Your data, your database, zero cloud.
 - Privacy controls (`Do Not Track`, `Global Privacy Control`, selector masking)
 - Pluggable storage adapter interface
 - Heatmap, clickmap, and scroll-depth visualizations
+- Element click-count overlay badges
+- Export helpers (`toDataUrl`, `toBlob`, `download`) via `Heatmap` ref
 - WebGL preferred renderer with Canvas fallback
 
 ## Basic Usage
@@ -16,17 +18,27 @@ Privacy-first heatmaps for React. Your data, your database, zero cloud.
 ```tsx
 import {
   ClickmapProvider,
+  type HeatmapHandle,
   Heatmap,
   memoryAdapter
 } from 'react-clickmap';
+import { useRef } from 'react';
 
 const adapter = memoryAdapter();
 
 export function Demo() {
+  const heatmapRef = useRef<HeatmapHandle>(null);
+
   return (
     <ClickmapProvider adapter={adapter} capture={['click', 'scroll']}>
       <main>...</main>
-      <Heatmap adapter={adapter} page="/" type="heatmap" />
+      <Heatmap
+        ref={heatmapRef}
+        adapter={adapter}
+        page="/"
+        type="heatmap"
+        showElementClicks
+      />
     </ClickmapProvider>
   );
 }
@@ -37,6 +49,7 @@ export function Demo() {
 - Provider: `ClickmapProvider`
 - Hooks: `useClickmap`, `useHeatmapData`
 - Visualization: `Heatmap`, `ScrollDepth`, `HeatmapThumbnail`
+- Overlay: `ElementClickOverlay`
 - Adapters: `fetchAdapter`, `memoryAdapter`, `localStorageAdapter`, `createAdapter`
 
 ## License

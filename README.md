@@ -15,6 +15,7 @@ Privacy-first heatmaps for React. Your data, your database, zero cloud.
 - Capture engine is implemented with privacy controls, sampling, batching, and adapter abstraction.
 - Built-in adapters: `memoryAdapter`, `fetchAdapter`, `localStorageAdapter`.
 - First-party SQL persistence add-on: `react-clickmap-postgres`.
+- First-party Supabase persistence add-on: `react-clickmap-supabase`.
 - Baseline visualization components are implemented:
   - `Heatmap`
   - `ScrollDepth`
@@ -54,7 +55,25 @@ export function App() {
 
 - Library: `packages/react-clickmap`
 - Postgres add-on: `packages/react-clickmap-postgres`
+- Supabase add-on: `packages/react-clickmap-supabase`
 - Docs scaffold: `apps/docs`
+
+## Docs
+
+- Docs IA and authored content index: `apps/docs/README.md`
+- Getting started: `apps/docs/content/getting-started.md`
+- Guides:
+  - `apps/docs/content/guides/privacy-consent.md`
+  - `apps/docs/content/guides/nextjs-app-router.md`
+  - `apps/docs/content/guides/persistence.md`
+  - `apps/docs/content/guides/rendering-performance.md`
+- API:
+  - `apps/docs/content/api/components.md`
+  - `apps/docs/content/api/adapters.md`
+  - `apps/docs/content/api/events.md`
+- Examples:
+  - `apps/docs/content/examples/element-overlay.md`
+  - `apps/docs/content/examples/export-heatmap.md`
 
 ## Development
 
