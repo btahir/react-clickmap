@@ -1,0 +1,4 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema-jsonc.json",
+  "ignore": ["dist/**", "src/capture/index.ts", "src/render/worker-entry.ts"]
+}

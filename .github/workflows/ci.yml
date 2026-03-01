@@ -31,3 +31,12 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Bundle Budget
+        run: pnpm --filter react-clickmap budget
+
+      - name: Size Limit
+        run: pnpm --filter react-clickmap size-limit
+
+      - name: Dead Code Check
+        run: pnpm --filter react-clickmap knip
