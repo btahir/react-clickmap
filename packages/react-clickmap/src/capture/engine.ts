@@ -5,7 +5,7 @@ import { EventBatcher } from "./batcher";
 import { createClickTracker } from "./click-tracker";
 import { detectDeviceType } from "./device";
 import { createPointerMoveTracker } from "./pointer-move-tracker";
-import { getCurrentPathname, getCurrentRouteKey } from "./route";
+import { getCurrentPathname, getCurrentRouteKey, subscribeRouteChanges } from "./route";
 import { createScrollTracker } from "./scroll-tracker";
 
 export interface CaptureEngineOptions {
@@ -90,6 +90,11 @@ export function createCaptureEngine(options: CaptureEngineOptions): CaptureEngin
     }
 
     batcher.start();
+    cleanupCallbacks.push(
+      subscribeRouteChanges(() => {
+        void batcher.flush("manual");
+      }),
+    );
 
     if (enabledCapture.has("click") || enabledCapture.has("rage-click")) {
       cleanupCallbacks.push(

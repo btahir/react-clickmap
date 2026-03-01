@@ -63,6 +63,12 @@ export class EventBatcher {
     document.removeEventListener("visibilitychange", this.handleVisibilityChange);
     window.removeEventListener("pagehide", this.handlePageHide);
 
+    if (this.isFlushing) {
+      this.pendingFlushReason = "stop";
+      this.flushBestEffort("stop");
+      return;
+    }
+
     void this.flush("stop");
   }
 
@@ -119,11 +125,42 @@ export class EventBatcher {
 
   private handleVisibilityChange(): void {
     if (document.visibilityState === "hidden") {
+      if (this.isFlushing) {
+        this.pendingFlushReason = "visibilitychange";
+        this.flushBestEffort("visibilitychange");
+        return;
+      }
+
       void this.flush("visibilitychange");
     }
   }
 
   private handlePageHide(): void {
+    if (this.isFlushing) {
+      this.pendingFlushReason = "pagehide";
+      this.flushBestEffort("pagehide");
+      return;
+    }
+
     void this.flush("pagehide");
+  }
+
+  private flushBestEffort(reason: FlushReason): void {
+    if (this.queue.length === 0) {
+      return;
+    }
+
+    const events = this.queue;
+    this.queue = [];
+
+    void this.adapter
+      .save(events)
+      .then(() => {
+        this.onFlush?.(events.length, reason);
+      })
+      .catch((error) => {
+        this.queue = events.concat(this.queue);
+        this.onError?.(error);
+      });
   }
 }

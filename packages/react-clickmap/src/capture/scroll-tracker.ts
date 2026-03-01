@@ -2,6 +2,7 @@ import type { CaptureEvent, DeviceType, ScrollEvent } from "../types";
 import { clamp } from "../utils/coordinates";
 import { createEventId } from "../utils/event-id";
 import { throttle } from "../utils/throttle";
+import { subscribeRouteChanges } from "./route";
 
 export interface ScrollTrackerOptions {
   projectId: string;
@@ -55,8 +56,13 @@ export function createScrollTracker(options: ScrollTrackerOptions): () => void {
 
   const listener = throttle(emitScroll, throttleMs);
   window.addEventListener("scroll", listener, { passive: true });
+  const unsubscribeRouteChanges = subscribeRouteChanges(() => {
+    maxDepth = 0;
+    emitScroll();
+  });
 
   return () => {
     window.removeEventListener("scroll", listener);
+    unsubscribeRouteChanges();
   };
 }
