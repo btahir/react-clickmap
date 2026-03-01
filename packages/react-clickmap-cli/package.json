@@ -1,0 +1,47 @@
+{
+  "name": "react-clickmap-cli",
+  "version": "0.1.0",
+  "description": "Local CLI dev server and preview dashboard for react-clickmap.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "react-clickmap": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "module": "./dist/cli.js",
+  "types": "./dist/cli.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/cli.d.ts",
+      "import": "./dist/cli.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "keywords": [
+    "react-clickmap",
+    "cli",
+    "dashboard",
+    "self-hosted"
+  ],
+  "dependencies": {
+    "react-clickmap": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsup",
+    "check": "biome check src tsup.config.ts README.md",
+    "check:fix": "biome check --write src tsup.config.ts README.md",
+    "test": "echo 'no tests yet'",
+    "test:run": "echo 'no tests yet'"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.3",
+    "biome": "npm:@biomejs/biome@^2.4.4",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2"
+  }
+}
