@@ -1,4 +1,4 @@
-export type CaptureType = "click" | "scroll" | "pointer-move" | "rage-click";
+export type CaptureType = "click" | "dead-click" | "scroll" | "pointer-move" | "rage-click";
 
 export type DeviceType = "desktop" | "tablet" | "mobile";
 
@@ -14,7 +14,10 @@ export interface ViewportState {
 export interface EventBase {
   schemaVersion: 1;
   eventVersion: 1;
+  eventId: string;
+  projectId: string;
   sessionId: string;
+  userId?: string;
   timestamp: number;
   pathname: string;
   routeKey: string;
@@ -41,6 +44,15 @@ export interface RageClickEvent extends EventBase {
   radiusPx: number;
 }
 
+export interface DeadClickEvent extends EventBase {
+  type: "dead-click";
+  x: number;
+  y: number;
+  selector?: string;
+  pointerType: PointerType;
+  reason: "non-interactive-target";
+}
+
 export interface ScrollEvent extends EventBase {
   type: "scroll";
   depth: number;
@@ -54,7 +66,12 @@ export interface PointerMoveEvent extends EventBase {
   pointerType: PointerType;
 }
 
-export type CaptureEvent = ClickEvent | RageClickEvent | ScrollEvent | PointerMoveEvent;
+export type CaptureEvent =
+  | ClickEvent
+  | RageClickEvent
+  | DeadClickEvent
+  | ScrollEvent
+  | PointerMoveEvent;
 
 export interface HeatmapQuery {
   page?: string;
@@ -64,6 +81,8 @@ export interface HeatmapQuery {
   device?: "all" | DeviceType;
   types?: CaptureType[];
   sessionId?: string;
+  projectId?: string;
+  userId?: string;
   limit?: number;
 }
 
@@ -83,5 +102,6 @@ export interface AggregatedHeatmapPayload {
 export interface ClickmapAdapter {
   save(events: CaptureEvent[]): Promise<void>;
   load(query: HeatmapQuery): Promise<CaptureEvent[]>;
+  deleteEvents?(query: HeatmapQuery): Promise<number>;
   loadAggregated?(query: HeatmapQuery): Promise<AggregatedHeatmapPayload>;
 }

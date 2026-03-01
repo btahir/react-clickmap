@@ -1,6 +1,14 @@
-import type { CaptureEvent, ClickEvent, DeviceType, PointerType, RageClickEvent } from "../types";
+import type {
+  CaptureEvent,
+  ClickEvent,
+  DeadClickEvent,
+  DeviceType,
+  PointerType,
+  RageClickEvent,
+} from "../types";
 import { toViewportPercentages } from "../utils/coordinates";
 import { getElementSelector, matchesAnySelector } from "../utils/element-selector";
+import { createEventId } from "../utils/event-id";
 
 interface RageClickPoint {
   x: number;
@@ -9,18 +17,24 @@ interface RageClickPoint {
 }
 
 export interface ClickTrackerOptions {
+  projectId: string;
   sessionId: string;
+  userId: string | undefined;
   deviceType: DeviceType;
   getPathname: () => string;
   getRouteKey: () => string;
   emit: (event: CaptureEvent) => void;
   ignoreSelectors?: string[];
   maskSelectors?: string[];
+  enableDeadClicks?: boolean;
   enableRageClicks?: boolean;
   rageClickThreshold?: number;
   rageClickWindowMs?: number;
   rageClickRadiusPx?: number;
 }
+
+const INTERACTIVE_SELECTOR =
+  "a[href],button,input,select,textarea,summary,label[for],[role='button'],[role='link'],[onclick],[data-clickmap-interactive]";
 
 function toPointerType(pointerType: string): PointerType {
   if (pointerType === "mouse" || pointerType === "touch" || pointerType === "pen") {
@@ -37,6 +51,14 @@ function createViewportState() {
     scrollX: window.scrollX,
     scrollY: window.scrollY,
   };
+}
+
+function isInteractiveElement(element: Element): boolean {
+  if (element instanceof HTMLElement && element.isContentEditable) {
+    return true;
+  }
+
+  return Boolean(element.closest(INTERACTIVE_SELECTOR));
 }
 
 export function createClickTracker(options: ClickTrackerOptions): () => void {
@@ -71,8 +93,11 @@ export function createClickTracker(options: ClickTrackerOptions): () => void {
     const clickEvent: ClickEvent = {
       schemaVersion: 1,
       eventVersion: 1,
+      eventId: createEventId(),
+      projectId: options.projectId,
       type: "click",
       sessionId: options.sessionId,
+      userId: options.userId,
       timestamp: now,
       pathname: options.getPathname(),
       routeKey: options.getRouteKey(),
@@ -85,6 +110,30 @@ export function createClickTracker(options: ClickTrackerOptions): () => void {
     };
 
     options.emit(clickEvent);
+
+    if (options.enableDeadClicks && targetElement && !isInteractiveElement(targetElement)) {
+      const deadClickEvent: DeadClickEvent = {
+        schemaVersion: 1,
+        eventVersion: 1,
+        eventId: createEventId(),
+        projectId: options.projectId,
+        type: "dead-click",
+        sessionId: options.sessionId,
+        userId: options.userId,
+        timestamp: now,
+        pathname: options.getPathname(),
+        routeKey: options.getRouteKey(),
+        deviceType: options.deviceType,
+        viewport: createViewportState(),
+        x: coordinates.x,
+        y: coordinates.y,
+        pointerType,
+        selector,
+        reason: "non-interactive-target",
+      };
+
+      options.emit(deadClickEvent);
+    }
 
     if (!options.enableRageClicks) {
       return;
@@ -110,8 +159,11 @@ export function createClickTracker(options: ClickTrackerOptions): () => void {
     const rageEvent: RageClickEvent = {
       schemaVersion: 1,
       eventVersion: 1,
+      eventId: createEventId(),
+      projectId: options.projectId,
       type: "rage-click",
       sessionId: options.sessionId,
+      userId: options.userId,
       timestamp: now,
       pathname: options.getPathname(),
       routeKey: options.getRouteKey(),

@@ -30,4 +30,27 @@ describe("fetchAdapter", () => {
     expect(events).toHaveLength(1);
     expect(events[0]?.pathname).toBe("/docs");
   });
+
+  it("deletes events through delete endpoint", async () => {
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ deleted: 3 }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+
+    const adapter = fetchAdapter({
+      endpoint: "/api/clickmap",
+      deleteEndpoint: "/api/clickmap/delete",
+      fetchImpl,
+    });
+
+    const deleted = await adapter.deleteEvents?.({ projectId: "proj-1" });
+
+    expect(deleted).toBe(3);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl.mock.calls[0]?.[0]).toContain("/api/clickmap/delete");
+    expect(fetchImpl.mock.calls[0]?.[1]?.method).toBe("DELETE");
+  });
 });

@@ -1,9 +1,12 @@
 import type { CaptureEvent, DeviceType, ScrollEvent } from "../types";
 import { clamp } from "../utils/coordinates";
+import { createEventId } from "../utils/event-id";
 import { throttle } from "../utils/throttle";
 
 export interface ScrollTrackerOptions {
+  projectId: string;
   sessionId: string;
+  userId: string | undefined;
   deviceType: DeviceType;
   getPathname: () => string;
   getRouteKey: () => string;
@@ -33,8 +36,11 @@ export function createScrollTracker(options: ScrollTrackerOptions): () => void {
     const scrollEvent: ScrollEvent = {
       schemaVersion: 1,
       eventVersion: 1,
+      eventId: createEventId(),
+      projectId: options.projectId,
       type: "scroll",
       sessionId: options.sessionId,
+      userId: options.userId,
       timestamp: Date.now(),
       pathname: options.getPathname(),
       routeKey: options.getRouteKey(),

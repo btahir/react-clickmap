@@ -60,5 +60,16 @@ export function localStorageAdapter(options: LocalStorageAdapterOptions = {}): C
       const mem = memoryAdapter(readEvents(key));
       return mem.load(query);
     },
+
+    async deleteEvents(query: HeatmapQuery): Promise<number> {
+      if (typeof window === "undefined") {
+        return fallback.deleteEvents ? fallback.deleteEvents(query) : 0;
+      }
+
+      const mem = memoryAdapter(readEvents(key));
+      const removed = mem.deleteEvents ? await mem.deleteEvents(query) : 0;
+      writeEvents(key, mem.inspect());
+      return removed;
+    },
   };
 }

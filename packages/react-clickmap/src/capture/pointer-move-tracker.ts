@@ -1,9 +1,12 @@
 import type { CaptureEvent, DeviceType, PointerMoveEvent, PointerType } from "../types";
 import { toViewportPercentages } from "../utils/coordinates";
 import { matchesAnySelector } from "../utils/element-selector";
+import { createEventId } from "../utils/event-id";
 
 export interface PointerMoveTrackerOptions {
+  projectId: string;
   sessionId: string;
+  userId: string | undefined;
   deviceType: DeviceType;
   getPathname: () => string;
   getRouteKey: () => string;
@@ -61,8 +64,11 @@ export function createPointerMoveTracker(options: PointerMoveTrackerOptions): ()
     const pointerMoveEvent: PointerMoveEvent = {
       schemaVersion: 1,
       eventVersion: 1,
+      eventId: createEventId(),
+      projectId: options.projectId,
       type: "pointer-move",
       sessionId: options.sessionId,
+      userId: options.userId,
       timestamp: now,
       pathname: options.getPathname(),
       routeKey: options.getRouteKey(),

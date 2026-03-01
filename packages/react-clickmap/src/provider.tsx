@@ -15,6 +15,8 @@ const DEFAULT_MASK_SELECTORS = ["input", "textarea", "[contenteditable]", "[data
 
 export interface ClickmapProviderProps {
   adapter: ClickmapAdapter;
+  projectId?: string;
+  userId?: string;
   capture?: CaptureType[];
   sampleRate?: number;
   respectDoNotTrack?: boolean;
@@ -66,6 +68,8 @@ function updateStoreCaptureState(store: ClickmapRuntimeStore, isCapturing: boole
 
 export function ClickmapProvider({
   adapter,
+  projectId = "default",
+  userId,
   capture = DEFAULT_CAPTURE,
   sampleRate = 1,
   respectDoNotTrack = true,
@@ -114,7 +118,9 @@ export function ClickmapProvider({
     const engine = createCaptureEngine({
       adapter,
       capture,
+      projectId,
       sessionId,
+      userId,
       flushIntervalMs,
       maxBatchSize,
       sampleRate,
@@ -158,11 +164,13 @@ export function ClickmapProvider({
     ignoreSelectors,
     maskSelectors,
     maxBatchSize,
+    projectId,
     respectDoNotTrack,
     respectGlobalPrivacyControl,
     sampleRate,
     sessionId,
     store,
+    userId,
   ]);
 
   const contextValue = useMemo<ClickmapProviderStoreContext>(

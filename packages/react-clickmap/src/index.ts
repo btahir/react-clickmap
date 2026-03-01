@@ -15,6 +15,7 @@ export type {
   CaptureEvent,
   CaptureType,
   ClickmapAdapter,
+  DeadClickEvent,
   DeviceType,
   HeatmapQuery,
   PointerType,

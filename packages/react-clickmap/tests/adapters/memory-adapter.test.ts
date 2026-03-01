@@ -34,4 +34,23 @@ describe("memoryAdapter", () => {
     expect(limited[0]?.timestamp).toBe(2000);
     expect(limited[1]?.timestamp).toBe(3000);
   });
+
+  it("deletes events by query", async () => {
+    const adapter = memoryAdapter();
+
+    await adapter.save([
+      createEvent({ projectId: "proj-a", userId: "u-1" }),
+      createEvent({ projectId: "proj-a", userId: "u-2" }),
+      createEvent({ projectId: "proj-b", userId: "u-1" }),
+    ]);
+
+    const deleted = await adapter.deleteEvents?.({ projectId: "proj-a", userId: "u-1" });
+    expect(deleted).toBe(1);
+
+    const remaining = await adapter.load({});
+    expect(remaining).toHaveLength(2);
+    expect(remaining.some((event) => event.projectId === "proj-a" && event.userId === "u-1")).toBe(
+      false,
+    );
+  });
 });

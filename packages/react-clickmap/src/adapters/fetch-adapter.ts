@@ -3,6 +3,7 @@ import type { CaptureEvent, ClickmapAdapter, HeatmapQuery } from "../types";
 export interface FetchAdapterOptions {
   endpoint: string;
   loadEndpoint?: string;
+  deleteEndpoint?: string;
   headers?: HeadersInit;
   fetchImpl?: typeof fetch;
   preferBeacon?: boolean;
@@ -129,6 +130,28 @@ export function fetchAdapter(options: FetchAdapterOptions): ClickmapAdapter {
       }
 
       return payload.events ?? [];
+    },
+
+    async deleteEvents(query: HeatmapQuery): Promise<number> {
+      const queryString = encodeQuery(query);
+      const endpoint = options.deleteEndpoint ?? options.loadEndpoint ?? options.endpoint;
+      const url = queryString ? `${endpoint}?${queryString}` : endpoint;
+
+      const requestInit: RequestInit = {
+        method: "DELETE",
+      };
+
+      if (options.headers) {
+        requestInit.headers = options.headers;
+      }
+
+      const response = await fetchImpl(url, requestInit);
+      if (!response.ok) {
+        throw new Error(`Failed to delete clickmap events. Status: ${response.status}`);
+      }
+
+      const payload = (await response.json()) as { deleted?: number } | null;
+      return payload?.deleted ?? 0;
     },
   };
 }

@@ -13,6 +13,14 @@ function matchesQuery(event: CaptureEvent, query: HeatmapQuery): boolean {
     return false;
   }
 
+  if (query.projectId && event.projectId !== query.projectId) {
+    return false;
+  }
+
+  if (query.userId && event.userId !== query.userId) {
+    return false;
+  }
+
   if (query.device && query.device !== "all" && event.deviceType !== query.device) {
     return false;
   }
@@ -52,6 +60,14 @@ export function memoryAdapter(seedEvents: CaptureEvent[] = []): MemoryAdapter {
       }
 
       return filtered.slice(-query.limit);
+    },
+
+    async deleteEvents(query: HeatmapQuery): Promise<number> {
+      const before = events.length;
+      const kept = events.filter((event) => !matchesQuery(event, query));
+      events.length = 0;
+      events.push(...kept);
+      return before - kept.length;
     },
 
     clear(): void {
