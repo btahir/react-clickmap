@@ -1,0 +1,49 @@
+{
+  "name": "react-clickmap-postgres",
+  "version": "0.1.0",
+  "description": "Postgres persistence adapter and SQL schema for react-clickmap.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./sql": {
+      "types": "./dist/sql.d.ts",
+      "import": "./dist/sql.js"
+    }
+  },
+  "files": [
+    "dist",
+    "sql",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "keywords": [
+    "react-clickmap",
+    "postgres",
+    "sql",
+    "analytics",
+    "self-hosted"
+  ],
+  "dependencies": {
+    "react-clickmap": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsup",
+    "check": "biome check src tsup.config.ts",
+    "check:fix": "biome check --write src tsup.config.ts",
+    "test": "echo 'no tests yet'",
+    "test:run": "echo 'no tests yet'"
+  },
+  "devDependencies": {
+    "biome": "npm:@biomejs/biome@^2.4.4",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2"
+  }
+}

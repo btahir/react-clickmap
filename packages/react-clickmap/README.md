@@ -5,7 +5,7 @@ Privacy-first heatmaps for React. Your data, your database, zero cloud.
 ## Features
 
 - Click, scroll, pointer-move capture
-- Rage-click detection
+- Dead-click and rage-click detection
 - Privacy controls (`Do Not Track`, `Global Privacy Control`, selector masking)
 - Pluggable storage adapter interface
 - Heatmap, clickmap, and scroll-depth visualizations

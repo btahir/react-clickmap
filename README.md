@@ -14,6 +14,7 @@ Privacy-first heatmaps for React. Your data, your database, zero cloud.
 - Monorepo foundation and release tooling are in place.
 - Capture engine is implemented with privacy controls, sampling, batching, and adapter abstraction.
 - Built-in adapters: `memoryAdapter`, `fetchAdapter`, `localStorageAdapter`.
+- First-party SQL persistence add-on: `react-clickmap-postgres`.
 - Baseline visualization components are implemented:
   - `Heatmap`
   - `ScrollDepth`
@@ -52,6 +53,7 @@ export function App() {
 ## Package Layout
 
 - Library: `packages/react-clickmap`
+- Postgres add-on: `packages/react-clickmap-postgres`
 - Docs scaffold: `apps/docs`
 
 ## Development
