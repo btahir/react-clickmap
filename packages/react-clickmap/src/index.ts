@@ -1,4 +1,8 @@
 export { createAdapter, fetchAdapter, localStorageAdapter, memoryAdapter } from "./adapters";
+export type { AttentionHeatmapProps } from "./attention-heatmap";
+export { AttentionHeatmap } from "./attention-heatmap";
+export type { ComparisonHeatmapProps } from "./comparison-heatmap";
+export { ComparisonHeatmap } from "./comparison-heatmap";
 export type { ElementClickOverlayProps } from "./element-click-overlay";
 export { ElementClickOverlay } from "./element-click-overlay";
 export type { DateRangeInput, HeatmapHandle, HeatmapProps, HeatmapType } from "./heatmap";
@@ -7,6 +11,7 @@ export type { HeatmapThumbnailProps } from "./heatmap-thumbnail";
 export { HeatmapThumbnail } from "./heatmap-thumbnail";
 export { ClickmapProvider } from "./provider";
 export { DEFAULT_GRADIENT, detectRenderCapability } from "./render";
+export { toAttentionRenderPoints } from "./render/attention";
 export type { RenderCapability, RenderCapabilityTier } from "./render/capability";
 export type { ElementClickSummary } from "./render/element-clicks";
 export { aggregateElementClicks } from "./render/element-clicks";

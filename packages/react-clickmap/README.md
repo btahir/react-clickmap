@@ -9,6 +9,8 @@ Privacy-first heatmaps for React. Your data, your database, zero cloud.
 - Privacy controls (`Do Not Track`, `Global Privacy Control`, selector masking)
 - Pluggable storage adapter interface
 - Heatmap, clickmap, and scroll-depth visualizations
+- Comparison heatmap overlays (before/after)
+- Attention heatmap (scroll depth + interaction weighting)
 - Element click-count overlay badges
 - Export helpers (`toDataUrl`, `toBlob`, `download`) via `Heatmap` ref
 - WebGL preferred renderer with Canvas fallback
@@ -49,6 +51,7 @@ export function Demo() {
 - Provider: `ClickmapProvider`
 - Hooks: `useClickmap`, `useHeatmapData`
 - Visualization: `Heatmap`, `ScrollDepth`, `HeatmapThumbnail`
+- Advanced: `ComparisonHeatmap`, `AttentionHeatmap`
 - Overlay: `ElementClickOverlay`
 - Adapters: `fetchAdapter`, `memoryAdapter`, `localStorageAdapter`, `createAdapter`
 
