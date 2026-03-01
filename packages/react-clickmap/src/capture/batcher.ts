@@ -20,6 +20,8 @@ export class EventBatcher {
   private timer: ReturnType<typeof setInterval> | undefined;
   private isRunning = false;
   private isFlushing = false;
+  private inFlightFlush: Promise<void> | undefined;
+  private pendingFlushReason: FlushReason | undefined;
 
   constructor(options: EventBatcherOptions) {
     this.adapter = options.adapter;
@@ -76,22 +78,42 @@ export class EventBatcher {
   }
 
   async flush(reason: FlushReason): Promise<void> {
-    if (this.isFlushing || this.queue.length === 0) {
+    if (this.queue.length === 0 && !this.isFlushing) {
+      return;
+    }
+
+    if (this.isFlushing) {
+      this.pendingFlushReason = reason;
+      await this.inFlightFlush;
       return;
     }
 
     const events = this.queue;
     this.queue = [];
     this.isFlushing = true;
+    this.inFlightFlush = (async () => {
+      try {
+        await this.adapter.save(events);
+        this.onFlush?.(events.length, reason);
+      } catch (error) {
+        this.queue = events.concat(this.queue);
+        this.onError?.(error);
+      } finally {
+        this.isFlushing = false;
+      }
+    })();
 
-    try {
-      await this.adapter.save(events);
-      this.onFlush?.(events.length, reason);
-    } catch (error) {
-      this.queue = events.concat(this.queue);
-      this.onError?.(error);
-    } finally {
-      this.isFlushing = false;
+    await this.inFlightFlush;
+    this.inFlightFlush = undefined;
+
+    if (!this.pendingFlushReason) {
+      return;
+    }
+
+    const pendingReason = this.pendingFlushReason;
+    this.pendingFlushReason = undefined;
+    if (this.queue.length > 0) {
+      await this.flush(pendingReason);
     }
   }
 
