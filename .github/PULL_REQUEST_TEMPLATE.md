@@ -5,7 +5,6 @@
 ## Validation
 
 - [ ] `pnpm check`
-- [ ] `pnpm test:run`
 - [ ] `pnpm build`
 
 ## Changeset
