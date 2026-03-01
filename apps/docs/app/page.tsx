@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 type DemoMode = 'heatmap' | 'clickmap' | 'scrollmap';
@@ -117,7 +118,8 @@ function drawScrollmapBands(
 
   for (const dot of dots) {
     const index = Math.max(0, Math.min(buckets.length - 1, Math.floor(dot.y * buckets.length)));
-    buckets[index] += dot.life * 1.4;
+    const current = buckets[index] ?? 0;
+    buckets[index] = current + dot.life * 1.4;
   }
 
   const max = Math.max(...buckets, 0.001);
@@ -285,14 +287,16 @@ export default function DocsHome() {
         <div className="hero-overlay" />
 
         <header className="nav">
-          <div className="brand">react-clickmap</div>
+          <Link href="/" className="brand">
+            react-clickmap
+          </Link>
           <div className="actions">
-            <button type="button" className="pill ghost">
+            <Link href="/docs" className="pill ghost">
               Docs
-            </button>
-            <button type="button" className="pill solid">
+            </Link>
+            <Link href="/docs/getting-started" className="pill solid">
               npm install react-clickmap
-            </button>
+            </Link>
           </div>
         </header>
 

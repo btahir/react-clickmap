@@ -4,10 +4,23 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "build": "echo 'docs build placeholder'",
-    "check": "echo 'docs check placeholder'",
-    "check:fix": "echo 'docs check:fix placeholder'",
-    "test": "echo 'docs test placeholder'",
-    "test:run": "echo 'docs test:run placeholder'"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "check": "tsc --noEmit",
+    "check:fix": "pnpm run check",
+    "test": "pnpm run check",
+    "test:run": "pnpm run check"
+  },
+  "dependencies": {
+    "next": "^16.1.6",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.2"
   }
 }
