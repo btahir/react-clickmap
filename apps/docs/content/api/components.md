@@ -27,3 +27,26 @@ Imperative handle (`ref`):
 ## `ElementClickOverlay`
 
 Shows click-count badges anchored to visible elements using selector-derived aggregation.
+
+## `ComparisonHeatmap`
+
+Renders before/after range overlays in a single view:
+
+- `beforeDateRange`
+- `afterDateRange`
+- shared filters (`page`, `routeKey`, `device`)
+
+## `AttentionHeatmap`
+
+Combines interaction events and scroll profile to render weighted attention zones:
+
+- includes pointer movement, clicks, rage clicks, and dead clicks
+- boosts weights using scroll-depth profile
+
+## `HeatmapThumbnail`
+
+Embeddable static-size heatmap renderer for compact previews and lists.
+
+## `ScrollDepth`
+
+Right-edge depth rail showing how far users get on the page.

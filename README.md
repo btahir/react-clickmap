@@ -16,6 +16,9 @@ Privacy-first heatmaps for React. Your data, your database, zero cloud.
 - Built-in adapters: `memoryAdapter`, `fetchAdapter`, `localStorageAdapter`.
 - First-party SQL persistence add-on: `react-clickmap-postgres`.
 - First-party Supabase persistence add-on: `react-clickmap-supabase`.
+- First-party Next.js helpers: `@react-clickmap/next`.
+- First-party analytics UI package: `@react-clickmap/dashboard`.
+- First-party local preview CLI: `react-clickmap-cli`.
 - Baseline visualization components are implemented:
   - `Heatmap`
   - `ScrollDepth`
@@ -54,8 +57,11 @@ export function App() {
 ## Package Layout
 
 - Library: `packages/react-clickmap`
+- Next.js add-on: `packages/react-clickmap-next`
+- Dashboard add-on: `packages/react-clickmap-dashboard`
 - Postgres add-on: `packages/react-clickmap-postgres`
 - Supabase add-on: `packages/react-clickmap-supabase`
+- Local preview CLI: `packages/react-clickmap-cli`
 - Docs scaffold: `apps/docs`
 
 ## Docs
@@ -67,6 +73,7 @@ export function App() {
   - `apps/docs/content/guides/nextjs-app-router.md`
   - `apps/docs/content/guides/persistence.md`
   - `apps/docs/content/guides/rendering-performance.md`
+  - `apps/docs/content/guides/differentiation-packages.md`
 - API:
   - `apps/docs/content/api/components.md`
   - `apps/docs/content/api/adapters.md`
