@@ -1,3 +1,5 @@
+"use client";
+
 import { useMemo } from "react";
 import { summarizeScrollDepth } from "./render/normalize";
 import type { ClickmapAdapter, HeatmapQuery } from "./types";

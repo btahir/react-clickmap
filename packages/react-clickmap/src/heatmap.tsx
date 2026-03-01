@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useMemo, useRef } from "react";
 import { createRenderer, DEFAULT_GRADIENT, type GradientMap } from "./render";
 import { summarizeScrollDepth, toRenderPoints } from "./render/normalize";

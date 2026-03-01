@@ -1,14 +1,13 @@
-import {
-  createContext,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+"use client";
+
+import { createContext, type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { type CaptureEngine, createCaptureEngine } from "./capture/engine";
 import { getOrCreateSessionId } from "./capture/session";
+import {
+  type ClickmapRuntimeStore,
+  type ClickmapSnapshot,
+  createRuntimeStore,
+} from "./runtime-store";
 import type { CaptureType, ClickmapAdapter } from "./types";
 
 const DEFAULT_CAPTURE: CaptureType[] = ["click", "scroll"];
@@ -39,7 +38,15 @@ export interface ClickmapContextValue {
   stop: () => void;
 }
 
-export const ClickmapContext = createContext<ClickmapContextValue | undefined>(undefined);
+interface ClickmapProviderStoreContext {
+  getSnapshot: () => ClickmapSnapshot;
+  getServerSnapshot: () => ClickmapSnapshot;
+  subscribe: (listener: () => void) => () => void;
+  start: () => void;
+  stop: () => void;
+}
+
+export const ClickmapContext = createContext<ClickmapProviderStoreContext | undefined>(undefined);
 
 function assertAdapter(adapter: ClickmapAdapter | undefined): asserts adapter is ClickmapAdapter {
   if (!adapter) {
@@ -47,6 +54,14 @@ function assertAdapter(adapter: ClickmapAdapter | undefined): asserts adapter is
       "react-clickmap: No adapter provided to <ClickmapProvider>. Use memoryAdapter() for development.",
     );
   }
+}
+
+function updateStoreCaptureState(store: ClickmapRuntimeStore, isCapturing: boolean): void {
+  store.setState((current) => ({
+    ...current,
+    isCapturing,
+    queueSize: isCapturing ? current.queueSize : 0,
+  }));
 }
 
 export function ClickmapProvider({
@@ -66,24 +81,34 @@ export function ClickmapProvider({
 }: ClickmapProviderProps) {
   assertAdapter(adapter);
 
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [eventCount, setEventCount] = useState(0);
-  const [queueSize, setQueueSize] = useState(0);
   const sessionId = useMemo(() => getOrCreateSessionId(), []);
-
+  const storeRef = useRef<ClickmapRuntimeStore | undefined>(undefined);
   const engineRef = useRef<CaptureEngine | undefined>(undefined);
+
+  if (!storeRef.current) {
+    storeRef.current = createRuntimeStore({
+      isCapturing: false,
+      eventCount: 0,
+      queueSize: 0,
+      sessionId,
+    });
+  }
+
+  const store = storeRef.current;
 
   const stop = useCallback(() => {
     engineRef.current?.stop();
-    setIsCapturing(false);
-    setQueueSize(0);
-  }, []);
+    updateStoreCaptureState(store, false);
+  }, [store]);
 
   const start = useCallback(() => {
     const started = engineRef.current?.start() ?? false;
-    setIsCapturing(started);
-    setQueueSize(engineRef.current?.queueSize() ?? 0);
-  }, []);
+    store.setState((current) => ({
+      ...current,
+      isCapturing: started,
+      queueSize: engineRef.current?.queueSize() ?? 0,
+    }));
+  }, [store]);
 
   useEffect(() => {
     const engine = createCaptureEngine({
@@ -101,20 +126,27 @@ export function ClickmapProvider({
       ignoreSelectors,
       maskSelectors,
       onEventCaptured: () => {
-        setEventCount((current) => current + 1);
-        setQueueSize(engineRef.current?.queueSize() ?? 0);
+        store.setState((current) => ({
+          ...current,
+          eventCount: current.eventCount + 1,
+          queueSize: engineRef.current?.queueSize() ?? current.queueSize,
+        }));
       },
     });
 
     engineRef.current = engine;
-    const started = engine.start();
 
-    setIsCapturing(started);
-    setQueueSize(engine.queueSize());
+    const started = engine.start();
+    store.setState((current) => ({
+      ...current,
+      isCapturing: started,
+      queueSize: engine.queueSize(),
+    }));
 
     return () => {
       engine.stop();
       engineRef.current = undefined;
+      updateStoreCaptureState(store, false);
     };
   }, [
     adapter,
@@ -130,18 +162,18 @@ export function ClickmapProvider({
     respectGlobalPrivacyControl,
     sampleRate,
     sessionId,
+    store,
   ]);
 
-  const contextValue = useMemo<ClickmapContextValue>(
+  const contextValue = useMemo<ClickmapProviderStoreContext>(
     () => ({
-      isCapturing,
-      eventCount,
-      queueSize,
-      sessionId,
+      getSnapshot: store.getSnapshot,
+      getServerSnapshot: store.getServerSnapshot,
+      subscribe: store.subscribe,
       start,
       stop,
     }),
-    [eventCount, isCapturing, queueSize, sessionId, start, stop],
+    [start, stop, store.getServerSnapshot, store.getSnapshot, store.subscribe],
   );
 
   return <ClickmapContext.Provider value={contextValue}>{children}</ClickmapContext.Provider>;
