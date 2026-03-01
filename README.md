@@ -8,6 +8,16 @@ Privacy-first heatmaps for React. Your data, your database, zero cloud.
 
 `react-clickmap` captures click, scroll, and pointer-move behavior and renders heatmap overlays without sending data to third-party analytics vendors.
 
+![react-clickmap hero demo](assets/readme-hero.gif)
+
+## Product Media
+
+- Hero poster: [`assets/readme-hero-poster.png`](assets/readme-hero-poster.png)
+- Launch video (MP4): [`assets/launch-video.mp4`](assets/launch-video.mp4)
+- Launch thumbnail: [`assets/launch-thumbnail.png`](assets/launch-thumbnail.png)
+
+[![Watch launch video](assets/launch-thumbnail.png)](assets/launch-video.mp4)
+
 ## Current Status
 
 - Monorepo foundation and release tooling are in place.
@@ -88,6 +98,7 @@ pnpm install
 pnpm check
 pnpm test:run
 pnpm build
+pnpm --filter @react-clickmap/media run render:all
 ```
 
 ## Roadmap

@@ -1,0 +1,31 @@
+{
+  "name": "@react-clickmap/media",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "remotion studio src/index.ts",
+    "build": "echo 'no build step'",
+    "check": "tsc --noEmit",
+    "check:fix": "tsc --noEmit",
+    "test": "echo 'no tests yet'",
+    "test:run": "echo 'no tests yet'",
+    "render:hero:mp4": "remotion render src/index.ts READMEHero ../../assets/readme-hero.mp4 --codec=h264 --crf=18",
+    "render:hero:gif": "remotion render src/index.ts READMEHero ../../assets/.tmp-readme-hero.mp4 --codec=h264 --crf=20 && ffmpeg -y -i ../../assets/.tmp-readme-hero.mp4 -vf \"fps=12,scale=1200:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5\" ../../assets/readme-hero.gif && rm -f ../../assets/.tmp-readme-hero.mp4",
+    "render:hero:poster": "remotion still src/index.ts READMEHeroPoster ../../assets/readme-hero-poster.png",
+    "render:launch": "remotion render src/index.ts LaunchVideo ../../assets/launch-video.mp4 --codec=h264 --crf=18",
+    "render:launch:thumb": "remotion still src/index.ts LaunchThumbnail ../../assets/launch-thumbnail.png",
+    "render:all": "pnpm run render:hero:gif && pnpm run render:hero:poster && pnpm run render:launch && pnpm run render:launch:thumb"
+  },
+  "dependencies": {
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "remotion": "^4.0.431"
+  },
+  "devDependencies": {
+    "@remotion/cli": "^4.0.431",
+    "@types/node": "^25.3.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.2"
+  }
+}
