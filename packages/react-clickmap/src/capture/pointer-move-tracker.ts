@@ -1,6 +1,6 @@
-import type { CaptureEvent, DeviceType, PointerMoveEvent, PointerType } from '../types';
-import { matchesAnySelector } from '../utils/element-selector';
-import { toViewportPercentages } from '../utils/coordinates';
+import type { CaptureEvent, DeviceType, PointerMoveEvent, PointerType } from "../types";
+import { toViewportPercentages } from "../utils/coordinates";
+import { matchesAnySelector } from "../utils/element-selector";
 
 export interface PointerMoveTrackerOptions {
   sessionId: string;
@@ -17,16 +17,16 @@ function createViewportState() {
     width: window.innerWidth,
     height: window.innerHeight,
     scrollX: window.scrollX,
-    scrollY: window.scrollY
+    scrollY: window.scrollY,
   };
 }
 
 function normalizePointerType(pointerType: string): PointerType {
-  if (pointerType === 'mouse' || pointerType === 'touch' || pointerType === 'pen') {
+  if (pointerType === "mouse" || pointerType === "touch" || pointerType === "pen") {
     return pointerType;
   }
 
-  return 'unknown';
+  return "unknown";
 }
 
 export function createPointerMoveTracker(options: PointerMoveTrackerOptions): () => void {
@@ -55,13 +55,13 @@ export function createPointerMoveTracker(options: PointerMoveTrackerOptions): ()
       event.clientX,
       event.clientY,
       window.innerWidth,
-      window.innerHeight
+      window.innerHeight,
     );
 
     const pointerMoveEvent: PointerMoveEvent = {
       schemaVersion: 1,
       eventVersion: 1,
-      type: 'pointer-move',
+      type: "pointer-move",
       sessionId: options.sessionId,
       timestamp: now,
       pathname: options.getPathname(),
@@ -70,15 +70,15 @@ export function createPointerMoveTracker(options: PointerMoveTrackerOptions): ()
       viewport: createViewportState(),
       x: coordinates.x,
       y: coordinates.y,
-      pointerType: normalizePointerType(event.pointerType)
+      pointerType: normalizePointerType(event.pointerType),
     };
 
     options.emit(pointerMoveEvent);
   };
 
-  window.addEventListener('pointermove', listener, { passive: true });
+  window.addEventListener("pointermove", listener, { passive: true });
 
   return () => {
-    window.removeEventListener('pointermove', listener);
+    window.removeEventListener("pointermove", listener);
   };
 }

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { CaptureEvent, ClickmapAdapter, HeatmapQuery } from './types';
+import { useCallback, useEffect, useState } from "react";
+import type { CaptureEvent, ClickmapAdapter, HeatmapQuery } from "./types";
 
 export interface UseHeatmapDataResult {
   data: CaptureEvent[];
@@ -11,7 +11,7 @@ export interface UseHeatmapDataResult {
 export function useHeatmapData(
   adapter: ClickmapAdapter,
   query: HeatmapQuery,
-  enabled = true
+  enabled = true,
 ): UseHeatmapDataResult {
   const [data, setData] = useState<CaptureEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -30,7 +30,8 @@ export function useHeatmapData(
       const events = await adapter.load(query);
       setData(events);
     } catch (caught) {
-      const normalized = caught instanceof Error ? caught : new Error('Failed to load heatmap data');
+      const normalized =
+        caught instanceof Error ? caught : new Error("Failed to load heatmap data");
       setError(normalized);
     } finally {
       setIsLoading(false);

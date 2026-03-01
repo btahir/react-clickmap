@@ -1,8 +1,8 @@
-export type CaptureType = 'click' | 'scroll' | 'pointer-move' | 'rage-click';
+export type CaptureType = "click" | "scroll" | "pointer-move" | "rage-click";
 
-export type DeviceType = 'desktop' | 'tablet' | 'mobile';
+export type DeviceType = "desktop" | "tablet" | "mobile";
 
-export type PointerType = 'mouse' | 'touch' | 'pen' | 'unknown';
+export type PointerType = "mouse" | "touch" | "pen" | "unknown";
 
 export interface ViewportState {
   width: number;
@@ -23,7 +23,7 @@ export interface EventBase {
 }
 
 export interface ClickEvent extends EventBase {
-  type: 'click';
+  type: "click";
   x: number;
   y: number;
   selector?: string;
@@ -31,7 +31,7 @@ export interface ClickEvent extends EventBase {
 }
 
 export interface RageClickEvent extends EventBase {
-  type: 'rage-click';
+  type: "rage-click";
   x: number;
   y: number;
   selector?: string;
@@ -42,13 +42,13 @@ export interface RageClickEvent extends EventBase {
 }
 
 export interface ScrollEvent extends EventBase {
-  type: 'scroll';
+  type: "scroll";
   depth: number;
   maxDepth: number;
 }
 
 export interface PointerMoveEvent extends EventBase {
-  type: 'pointer-move';
+  type: "pointer-move";
   x: number;
   y: number;
   pointerType: PointerType;
@@ -61,7 +61,7 @@ export interface HeatmapQuery {
   routeKey?: string;
   from?: number;
   to?: number;
-  device?: 'all' | DeviceType;
+  device?: "all" | DeviceType;
   types?: CaptureType[];
   sessionId?: string;
   limit?: number;

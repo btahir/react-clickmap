@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { useHeatmapData } from './use-heatmap-data';
-import type { ClickmapAdapter, HeatmapQuery } from './types';
-import { createRenderer, DEFAULT_GRADIENT, type GradientMap } from './render';
-import { summarizeScrollDepth, toRenderPoints } from './render/normalize';
+import { useEffect, useMemo, useRef } from "react";
+import { createRenderer, DEFAULT_GRADIENT, type GradientMap } from "./render";
+import { summarizeScrollDepth, toRenderPoints } from "./render/normalize";
+import type { ClickmapAdapter, HeatmapQuery } from "./types";
+import { useHeatmapData } from "./use-heatmap-data";
 
-export type HeatmapType = 'heatmap' | 'clickmap' | 'scrollmap';
+export type HeatmapType = "heatmap" | "clickmap" | "scrollmap";
 
 export interface DateRangeInput {
   from?: string | Date;
@@ -17,7 +17,7 @@ export interface HeatmapProps {
   routeKey?: string;
   type?: HeatmapType;
   dateRange?: DateRangeInput;
-  device?: 'all' | 'desktop' | 'tablet' | 'mobile';
+  device?: "all" | "desktop" | "tablet" | "mobile";
   opacity?: number;
   radius?: number;
   gradient?: GradientMap;
@@ -42,9 +42,9 @@ function toTimestamp(input: string | Date | undefined): number | undefined {
 function drawScrollmap(
   canvas: HTMLCanvasElement,
   bands: Array<{ depth: number; ratio: number }>,
-  opacity: number
+  opacity: number,
 ): void {
-  const context = canvas.getContext('2d');
+  const context = canvas.getContext("2d");
   if (!context) {
     return;
   }
@@ -69,16 +69,16 @@ export function Heatmap({
   adapter,
   page,
   routeKey,
-  type = 'heatmap',
+  type = "heatmap",
   dateRange,
-  device = 'all',
+  device = "all",
   opacity = 0.6,
   radius = 25,
   gradient = DEFAULT_GRADIENT,
   interactive = false,
   zIndex = 9999,
-  className
-}: HeatmapProps): JSX.Element {
+  className,
+}: HeatmapProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<ReturnType<typeof createRenderer> | null>(null);
 
@@ -94,12 +94,12 @@ export function Heatmap({
     }
 
     const from = toTimestamp(dateRange?.from);
-    if (typeof from === 'number') {
+    if (typeof from === "number") {
       nextQuery.from = from;
     }
 
     const to = toTimestamp(dateRange?.to);
-    if (typeof to === 'number') {
+    if (typeof to === "number") {
       nextQuery.to = to;
     }
 
@@ -123,10 +123,10 @@ export function Heatmap({
     };
 
     resize();
-    window.addEventListener('resize', resize);
+    window.addEventListener("resize", resize);
 
     return () => {
-      window.removeEventListener('resize', resize);
+      window.removeEventListener("resize", resize);
     };
   }, []);
 
@@ -136,7 +136,7 @@ export function Heatmap({
       return;
     }
 
-    if (type === 'scrollmap') {
+    if (type === "scrollmap") {
       const bands = summarizeScrollDepth(data);
       drawScrollmap(canvas, bands, opacity);
       return;
@@ -154,7 +154,7 @@ export function Heatmap({
       height: canvas.height,
       radius,
       opacity,
-      gradient
+      gradient,
     });
 
     return () => {
@@ -174,10 +174,10 @@ export function Heatmap({
       ref={canvasRef}
       className={className}
       style={{
-        position: 'fixed',
+        position: "fixed",
         inset: 0,
-        pointerEvents: interactive ? 'auto' : 'none',
-        zIndex
+        pointerEvents: interactive ? "auto" : "none",
+        zIndex,
       }}
       aria-label="react-clickmap-overlay"
     />

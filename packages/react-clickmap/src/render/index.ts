@@ -1,7 +1,7 @@
-import { detectRenderCapability } from './capability';
-import { CanvasRenderer } from './canvas-renderer';
-import { WebGLRenderer } from './webgl-renderer';
-import type { Renderer } from './types';
+import { CanvasRenderer } from "./canvas-renderer";
+import { detectRenderCapability } from "./capability";
+import type { Renderer } from "./types";
+import { WebGLRenderer } from "./webgl-renderer";
 
 export interface RendererFactoryOptions {
   preferWebGL?: boolean;
@@ -9,7 +9,7 @@ export interface RendererFactoryOptions {
 
 export function createRenderer(
   canvas: HTMLCanvasElement,
-  options: RendererFactoryOptions = {}
+  options: RendererFactoryOptions = {},
 ): Renderer {
   const capability = detectRenderCapability();
   const shouldUseWebgl = options.preferWebGL ?? capability.webgl1;
@@ -25,6 +25,6 @@ export function createRenderer(
   return new CanvasRenderer(canvas);
 }
 
-export { DEFAULT_GRADIENT } from './gradient';
-export { detectRenderCapability } from './capability';
-export type { GradientMap, RenderOptions, RenderPoint, Renderer } from './types';
+export { detectRenderCapability } from "./capability";
+export { DEFAULT_GRADIENT } from "./gradient";
+export type { GradientMap, Renderer, RenderOptions, RenderPoint } from "./types";

@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
-import { useHeatmapData } from './use-heatmap-data';
-import type { ClickmapAdapter, HeatmapQuery } from './types';
-import { summarizeScrollDepth } from './render/normalize';
+import { useMemo } from "react";
+import { summarizeScrollDepth } from "./render/normalize";
+import type { ClickmapAdapter, HeatmapQuery } from "./types";
+import { useHeatmapData } from "./use-heatmap-data";
 
 export interface ScrollDepthProps {
   adapter: ClickmapAdapter;
@@ -18,11 +18,11 @@ export function ScrollDepth({
   routeKey,
   showPercentages = true,
   width = 14,
-  zIndex = 9999
-}: ScrollDepthProps): JSX.Element {
+  zIndex = 9999,
+}: ScrollDepthProps) {
   const query = useMemo<HeatmapQuery>(() => {
     const nextQuery: HeatmapQuery = {
-      types: ['scroll']
+      types: ["scroll"],
     };
 
     if (page) {
@@ -43,15 +43,15 @@ export function ScrollDepth({
     <aside
       aria-label="react-clickmap-scroll-depth"
       style={{
-        position: 'fixed',
+        position: "fixed",
         top: 0,
         right: 0,
-        height: '100vh',
+        height: "100vh",
         width,
         zIndex,
-        pointerEvents: 'none',
-        display: 'flex',
-        flexDirection: 'column'
+        pointerEvents: "none",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       {bands.map((band) => {
@@ -63,7 +63,7 @@ export function ScrollDepth({
             title={showPercentages ? `${Math.round(band.ratio * 100)}% reached` : undefined}
             style={{
               flex: 1,
-              backgroundColor: `hsla(${hue}, 90%, 55%, ${0.15 + band.ratio * 0.8})`
+              backgroundColor: `hsla(${hue}, 90%, 55%, ${0.15 + band.ratio * 0.8})`,
             }}
           />
         );

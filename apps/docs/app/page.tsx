@@ -132,7 +132,7 @@ function drawScrollmapBands(
   });
 }
 
-export default function DocsHome(): JSX.Element {
+export default function DocsHome() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const dotsRef = useRef<Dot[]>([]);

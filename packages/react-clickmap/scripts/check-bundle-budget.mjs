@@ -1,11 +1,11 @@
-import { gzipSync } from 'node:zlib';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { gzipSync } from "node:zlib";
 
-const target = resolve(process.cwd(), 'dist/index.js');
+const target = resolve(process.cwd(), "dist/index.js");
 
 try {
-  const file = readFileSync(target, 'utf8');
+  const file = readFileSync(target, "utf8");
   const gzSize = gzipSync(file).byteLength;
   const budget = 10 * 1024;
 
@@ -16,5 +16,5 @@ try {
 
   console.log(`Bundle budget ok: ${gzSize} bytes gzipped.`);
 } catch {
-  console.warn('Bundle budget check skipped (dist/index.js not found). Run build first.');
+  console.warn("Bundle budget check skipped (dist/index.js not found). Run build first.");
 }

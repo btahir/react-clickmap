@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { useHeatmapData } from './use-heatmap-data';
-import type { ClickmapAdapter, HeatmapQuery } from './types';
-import { createRenderer, DEFAULT_GRADIENT, type GradientMap } from './render';
-import { toRenderPoints } from './render/normalize';
+import { useEffect, useMemo, useRef } from "react";
+import { createRenderer, DEFAULT_GRADIENT, type GradientMap } from "./render";
+import { toRenderPoints } from "./render/normalize";
+import type { ClickmapAdapter, HeatmapQuery } from "./types";
+import { useHeatmapData } from "./use-heatmap-data";
 
 export interface HeatmapThumbnailProps {
   adapter: ClickmapAdapter;
@@ -25,8 +25,8 @@ export function HeatmapThumbnail({
   radius = 18,
   opacity = 0.7,
   gradient = DEFAULT_GRADIENT,
-  className
-}: HeatmapThumbnailProps): JSX.Element {
+  className,
+}: HeatmapThumbnailProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const query = useMemo<HeatmapQuery>(() => {
     const nextQuery: HeatmapQuery = {};
@@ -54,12 +54,12 @@ export function HeatmapThumbnail({
     const points = toRenderPoints(data);
 
     renderer.render(points, {
-      mode: 'heatmap',
+      mode: "heatmap",
       width,
       height,
       radius,
       opacity,
-      gradient
+      gradient,
     });
 
     return () => {

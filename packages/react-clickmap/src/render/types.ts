@@ -1,4 +1,4 @@
-export type HeatmapRenderMode = 'heatmap' | 'clickmap';
+export type HeatmapRenderMode = "heatmap" | "clickmap";
 
 export interface RenderPoint {
   x: number;

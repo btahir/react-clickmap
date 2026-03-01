@@ -1,7 +1,7 @@
-const SESSION_STORAGE_KEY = 'react-clickmap:session-id';
+const SESSION_STORAGE_KEY = "react-clickmap:session-id";
 
 export function createAnonymousSessionId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
 
@@ -9,7 +9,7 @@ export function createAnonymousSessionId(): string {
 }
 
 export function getOrCreateSessionId(): string {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return createAnonymousSessionId();
   }
 

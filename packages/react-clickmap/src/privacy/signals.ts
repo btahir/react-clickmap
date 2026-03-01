@@ -11,15 +11,15 @@ function isDntTruthy(value: DntValue): boolean {
   }
 
   const normalized = value.toLowerCase();
-  return normalized === '1' || normalized === 'yes';
+  return normalized === "1" || normalized === "yes";
 }
 
 export function isDoNotTrackEnabled(navigatorLike?: NavigatorWithPrivacySignals): boolean {
   const activeNavigator =
     navigatorLike ??
-    (typeof navigator !== 'undefined' ? (navigator as NavigatorWithPrivacySignals) : undefined);
+    (typeof navigator !== "undefined" ? (navigator as NavigatorWithPrivacySignals) : undefined);
   const windowDnt =
-    typeof window !== 'undefined'
+    typeof window !== "undefined"
       ? (window as Window & { doNotTrack?: string }).doNotTrack
       : undefined;
 
@@ -34,8 +34,12 @@ export function isDoNotTrackEnabled(navigatorLike?: NavigatorWithPrivacySignals)
   );
 }
 
-export function isGlobalPrivacyControlEnabled(navigatorLike?: NavigatorWithPrivacySignals): boolean {
-  const activeNavigator = navigatorLike ?? (typeof navigator !== 'undefined' ? (navigator as NavigatorWithPrivacySignals) : undefined);
+export function isGlobalPrivacyControlEnabled(
+  navigatorLike?: NavigatorWithPrivacySignals,
+): boolean {
+  const activeNavigator =
+    navigatorLike ??
+    (typeof navigator !== "undefined" ? (navigator as NavigatorWithPrivacySignals) : undefined);
 
   return Boolean(activeNavigator?.globalPrivacyControl === true);
 }

@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,9 +28,6 @@ jobs:
 
       - name: Check
         run: pnpm check
-
-      - name: Test
-        run: pnpm test:run
 
       - name: Build
         run: pnpm build

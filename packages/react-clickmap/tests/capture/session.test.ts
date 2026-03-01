@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { createAnonymousSessionId } from '../../src/capture/session';
+import { describe, expect, it } from "vitest";
+import { createAnonymousSessionId } from "../../src/capture/session";
 
-describe('session', () => {
-  it('creates stable-looking anonymous ids', () => {
+describe("session", () => {
+  it("creates stable-looking anonymous ids", () => {
     const sessionA = createAnonymousSessionId();
     const sessionB = createAnonymousSessionId();
 

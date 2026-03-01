@@ -1,4 +1,4 @@
-import type { CaptureEvent, ClickmapAdapter, HeatmapQuery } from '../types';
+import type { CaptureEvent, ClickmapAdapter, HeatmapQuery } from "../types";
 
 function matchesQuery(event: CaptureEvent, query: HeatmapQuery): boolean {
   if (query.page && event.pathname !== query.page) {
@@ -13,7 +13,7 @@ function matchesQuery(event: CaptureEvent, query: HeatmapQuery): boolean {
     return false;
   }
 
-  if (query.device && query.device !== 'all' && event.deviceType !== query.device) {
+  if (query.device && query.device !== "all" && event.deviceType !== query.device) {
     return false;
   }
 
@@ -21,11 +21,11 @@ function matchesQuery(event: CaptureEvent, query: HeatmapQuery): boolean {
     return false;
   }
 
-  if (typeof query.from === 'number' && event.timestamp < query.from) {
+  if (typeof query.from === "number" && event.timestamp < query.from) {
     return false;
   }
 
-  if (typeof query.to === 'number' && event.timestamp > query.to) {
+  if (typeof query.to === "number" && event.timestamp > query.to) {
     return false;
   }
 
@@ -60,6 +60,6 @@ export function memoryAdapter(seedEvents: CaptureEvent[] = []): MemoryAdapter {
 
     inspect(): CaptureEvent[] {
       return [...events];
-    }
+    },
   };
 }

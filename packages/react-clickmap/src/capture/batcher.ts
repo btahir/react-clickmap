@@ -1,6 +1,6 @@
-import type { CaptureEvent, ClickmapAdapter } from '../types';
+import type { CaptureEvent, ClickmapAdapter } from "../types";
 
-export type FlushReason = 'interval' | 'visibilitychange' | 'pagehide' | 'manual' | 'stop';
+export type FlushReason = "interval" | "visibilitychange" | "pagehide" | "manual" | "stop";
 
 export interface EventBatcherOptions {
   adapter: ClickmapAdapter;
@@ -33,21 +33,21 @@ export class EventBatcher {
   }
 
   start(): void {
-    if (this.isRunning || typeof window === 'undefined') {
+    if (this.isRunning || typeof window === "undefined") {
       return;
     }
 
     this.isRunning = true;
     this.timer = setInterval(() => {
-      void this.flush('interval');
+      void this.flush("interval");
     }, this.flushIntervalMs);
 
-    document.addEventListener('visibilitychange', this.handleVisibilityChange);
-    window.addEventListener('pagehide', this.handlePageHide);
+    document.addEventListener("visibilitychange", this.handleVisibilityChange);
+    window.addEventListener("pagehide", this.handlePageHide);
   }
 
   stop(): void {
-    if (!this.isRunning || typeof window === 'undefined') {
+    if (!this.isRunning || typeof window === "undefined") {
       return;
     }
 
@@ -58,16 +58,16 @@ export class EventBatcher {
       this.timer = undefined;
     }
 
-    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
-    window.removeEventListener('pagehide', this.handlePageHide);
+    document.removeEventListener("visibilitychange", this.handleVisibilityChange);
+    window.removeEventListener("pagehide", this.handlePageHide);
 
-    void this.flush('stop');
+    void this.flush("stop");
   }
 
   push(event: CaptureEvent): void {
     this.queue.push(event);
     if (this.queue.length >= this.maxBatchSize) {
-      void this.flush('manual');
+      void this.flush("manual");
     }
   }
 
@@ -96,12 +96,12 @@ export class EventBatcher {
   }
 
   private handleVisibilityChange(): void {
-    if (document.visibilityState === 'hidden') {
-      void this.flush('visibilitychange');
+    if (document.visibilityState === "hidden") {
+      void this.flush("visibilitychange");
     }
   }
 
   private handlePageHide(): void {
-    void this.flush('pagehide');
+    void this.flush("pagehide");
   }
 }

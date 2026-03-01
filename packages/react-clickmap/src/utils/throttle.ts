@@ -1,6 +1,6 @@
 export function throttle<T extends (...args: never[]) => void>(
   callback: T,
-  waitMs: number
+  waitMs: number,
 ): (...args: Parameters<T>) => void {
   let lastCallTime = 0;
 

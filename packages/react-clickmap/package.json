@@ -34,8 +34,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "check": "biome check .",
-    "check:fix": "biome check --write .",
+    "check": "biome check src tests scripts tsup.config.ts vitest.config.ts",
+    "check:fix": "biome check --write src tests scripts tsup.config.ts vitest.config.ts",
     "test": "vitest",
     "test:run": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",

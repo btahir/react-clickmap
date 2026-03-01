@@ -1,12 +1,12 @@
-import { isDoNotTrackEnabled, isGlobalPrivacyControlEnabled } from '../privacy/signals';
-import type { CaptureType, ClickmapAdapter } from '../types';
-import { shouldSampleSession } from '../utils/hash';
-import { EventBatcher } from './batcher';
-import { createClickTracker } from './click-tracker';
-import { detectDeviceType } from './device';
-import { getCurrentPathname, getCurrentRouteKey } from './route';
-import { createPointerMoveTracker } from './pointer-move-tracker';
-import { createScrollTracker } from './scroll-tracker';
+import { isDoNotTrackEnabled, isGlobalPrivacyControlEnabled } from "../privacy/signals";
+import type { CaptureType, ClickmapAdapter } from "../types";
+import { shouldSampleSession } from "../utils/hash";
+import { EventBatcher } from "./batcher";
+import { createClickTracker } from "./click-tracker";
+import { detectDeviceType } from "./device";
+import { createPointerMoveTracker } from "./pointer-move-tracker";
+import { getCurrentPathname, getCurrentRouteKey } from "./route";
+import { createScrollTracker } from "./scroll-tracker";
 
 export interface CaptureEngineOptions {
   adapter: ClickmapAdapter;
@@ -33,7 +33,9 @@ export interface CaptureEngine {
   queueSize: () => number;
 }
 
-function isPrivacyOptOut(options: Pick<CaptureEngineOptions, 'respectDoNotTrack' | 'respectGlobalPrivacyControl'>): boolean {
+function isPrivacyOptOut(
+  options: Pick<CaptureEngineOptions, "respectDoNotTrack" | "respectGlobalPrivacyControl">,
+): boolean {
   if (options.respectDoNotTrack && isDoNotTrackEnabled()) {
     return true;
   }
@@ -54,12 +56,12 @@ export function createCaptureEngine(options: CaptureEngineOptions): CaptureEngin
     adapter: options.adapter,
     flushIntervalMs: options.flushIntervalMs,
     maxBatchSize: options.maxBatchSize,
-    onError: options.onError
+    onError: options.onError,
   });
 
   let running = false;
 
-  const emitCaptured = (event: Parameters<EventBatcher['push']>[0]): void => {
+  const emitCaptured = (event: Parameters<EventBatcher["push"]>[0]): void => {
     batcher.push(event);
     options.onEventCaptured?.();
   };
@@ -87,7 +89,7 @@ export function createCaptureEngine(options: CaptureEngineOptions): CaptureEngin
 
     batcher.start();
 
-    if (enabledCapture.has('click') || enabledCapture.has('rage-click')) {
+    if (enabledCapture.has("click") || enabledCapture.has("rage-click")) {
       cleanupCallbacks.push(
         createClickTracker({
           sessionId: options.sessionId,
@@ -95,26 +97,26 @@ export function createCaptureEngine(options: CaptureEngineOptions): CaptureEngin
           getPathname: getCurrentPathname,
           getRouteKey: getCurrentRouteKey,
           emit: emitCaptured,
-          enableRageClicks: enabledCapture.has('rage-click'),
+          enableRageClicks: enabledCapture.has("rage-click"),
           ignoreSelectors: options.ignoreSelectors,
-          maskSelectors: options.maskSelectors
-        })
+          maskSelectors: options.maskSelectors,
+        }),
       );
     }
 
-    if (enabledCapture.has('scroll')) {
+    if (enabledCapture.has("scroll")) {
       cleanupCallbacks.push(
         createScrollTracker({
           sessionId: options.sessionId,
           deviceType,
           getPathname: getCurrentPathname,
           getRouteKey: getCurrentRouteKey,
-          emit: emitCaptured
-        })
+          emit: emitCaptured,
+        }),
       );
     }
 
-    if (enabledCapture.has('pointer-move')) {
+    if (enabledCapture.has("pointer-move")) {
       cleanupCallbacks.push(
         createPointerMoveTracker({
           sessionId: options.sessionId,
@@ -122,8 +124,8 @@ export function createCaptureEngine(options: CaptureEngineOptions): CaptureEngin
           getPathname: getCurrentPathname,
           getRouteKey: getCurrentRouteKey,
           emit: emitCaptured,
-          ignoreSelectors: options.ignoreSelectors
-        })
+          ignoreSelectors: options.ignoreSelectors,
+        }),
       );
     }
 
@@ -149,6 +151,6 @@ export function createCaptureEngine(options: CaptureEngineOptions): CaptureEngin
     start,
     stop,
     isCapturing: () => running,
-    queueSize: () => batcher.size()
+    queueSize: () => batcher.size(),
   };
 }

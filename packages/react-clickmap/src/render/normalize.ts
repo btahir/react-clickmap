@@ -1,11 +1,11 @@
-import type { CaptureEvent } from '../types';
-import type { RenderPoint } from './types';
+import type { CaptureEvent } from "../types";
+import type { RenderPoint } from "./types";
 
 export function toRenderPoints(events: CaptureEvent[]): RenderPoint[] {
   const pointWeights = new Map<string, { x: number; y: number; weight: number }>();
 
   for (const event of events) {
-    if (event.type === 'scroll') {
+    if (event.type === "scroll") {
       continue;
     }
 
@@ -13,7 +13,7 @@ export function toRenderPoints(events: CaptureEvent[]): RenderPoint[] {
     const y = Math.round(event.y * 10) / 10;
     const key = `${x}:${y}`;
     const current = pointWeights.get(key);
-    const increment = event.type === 'rage-click' ? 2 : 1;
+    const increment = event.type === "rage-click" ? 2 : 1;
 
     if (!current) {
       pointWeights.set(key, { x, y, weight: increment });
@@ -29,12 +29,14 @@ export function toRenderPoints(events: CaptureEvent[]): RenderPoint[] {
   return points.map((point) => ({
     x: point.x,
     y: point.y,
-    weight: maxWeight > 0 ? point.weight / maxWeight : 0
+    weight: maxWeight > 0 ? point.weight / maxWeight : 0,
   }));
 }
 
-export function summarizeScrollDepth(events: CaptureEvent[]): Array<{ depth: number; ratio: number }> {
-  const scrollEvents = events.filter((event) => event.type === 'scroll');
+export function summarizeScrollDepth(
+  events: CaptureEvent[],
+): Array<{ depth: number; ratio: number }> {
+  const scrollEvents = events.filter((event) => event.type === "scroll");
   if (scrollEvents.length === 0) {
     return [];
   }
@@ -54,6 +56,6 @@ export function summarizeScrollDepth(events: CaptureEvent[]): Array<{ depth: num
 
   return histogram.map((count, index) => ({
     depth: index * (100 / bands),
-    ratio: count / total
+    ratio: count / total,
   }));
 }

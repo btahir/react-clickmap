@@ -1,6 +1,6 @@
-import { fromViewportPercentages } from '../utils/coordinates';
-import { buildGradientPalette, paletteColorAt } from './gradient';
-import type { RenderOptions, RenderPoint, Renderer } from './types';
+import { fromViewportPercentages } from "../utils/coordinates";
+import { buildGradientPalette, paletteColorAt } from "./gradient";
+import type { Renderer, RenderOptions, RenderPoint } from "./types";
 
 export class CanvasRenderer implements Renderer {
   private readonly canvas: HTMLCanvasElement;
@@ -9,15 +9,15 @@ export class CanvasRenderer implements Renderer {
   private readonly shadowContext: CanvasRenderingContext2D;
 
   constructor(canvas: HTMLCanvasElement) {
-    const context = canvas.getContext('2d');
+    const context = canvas.getContext("2d");
     if (!context) {
-      throw new Error('react-clickmap: Unable to create 2D rendering context');
+      throw new Error("react-clickmap: Unable to create 2D rendering context");
     }
 
-    const shadowCanvas = document.createElement('canvas');
-    const shadowContext = shadowCanvas.getContext('2d');
+    const shadowCanvas = document.createElement("canvas");
+    const shadowContext = shadowCanvas.getContext("2d");
     if (!shadowContext) {
-      throw new Error('react-clickmap: Unable to create shadow canvas context');
+      throw new Error("react-clickmap: Unable to create shadow canvas context");
     }
 
     this.canvas = canvas;
@@ -51,7 +51,7 @@ export class CanvasRenderer implements Renderer {
       return;
     }
 
-    if (options.mode === 'clickmap') {
+    if (options.mode === "clickmap") {
       this.renderClickmap(points, options);
       return;
     }
@@ -86,21 +86,26 @@ export class CanvasRenderer implements Renderer {
         0,
         pixel.x,
         pixel.y,
-        options.radius
+        options.radius,
       );
       gradient.addColorStop(0, `rgba(0, 0, 0, ${Math.max(0.05, point.weight)})`);
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
 
       this.shadowContext.fillStyle = gradient;
       this.shadowContext.fillRect(
         pixel.x - options.radius,
         pixel.y - options.radius,
         options.radius * 2,
-        options.radius * 2
+        options.radius * 2,
       );
     }
 
-    const colorized = this.shadowContext.getImageData(0, 0, this.shadowCanvas.width, this.shadowCanvas.height);
+    const colorized = this.shadowContext.getImageData(
+      0,
+      0,
+      this.shadowCanvas.width,
+      this.shadowCanvas.height,
+    );
     const palette = buildGradientPalette(options.gradient);
 
     for (let index = 0; index < colorized.data.length; index += 4) {

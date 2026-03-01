@@ -1,6 +1,6 @@
-import type { CaptureEvent, DeviceType, ScrollEvent } from '../types';
-import { clamp } from '../utils/coordinates';
-import { throttle } from '../utils/throttle';
+import type { CaptureEvent, DeviceType, ScrollEvent } from "../types";
+import { clamp } from "../utils/coordinates";
+import { throttle } from "../utils/throttle";
 
 export interface ScrollTrackerOptions {
   sessionId: string;
@@ -16,7 +16,7 @@ function createViewportState() {
     width: window.innerWidth,
     height: window.innerHeight,
     scrollX: window.scrollX,
-    scrollY: window.scrollY
+    scrollY: window.scrollY,
   };
 }
 
@@ -26,13 +26,14 @@ export function createScrollTracker(options: ScrollTrackerOptions): () => void {
 
   const emitScroll = (): void => {
     const scrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
-    const depth = scrollableHeight <= 0 ? 100 : clamp((window.scrollY / scrollableHeight) * 100, 0, 100);
+    const depth =
+      scrollableHeight <= 0 ? 100 : clamp((window.scrollY / scrollableHeight) * 100, 0, 100);
     maxDepth = Math.max(maxDepth, depth);
 
     const scrollEvent: ScrollEvent = {
       schemaVersion: 1,
       eventVersion: 1,
-      type: 'scroll',
+      type: "scroll",
       sessionId: options.sessionId,
       timestamp: Date.now(),
       pathname: options.getPathname(),
@@ -40,16 +41,16 @@ export function createScrollTracker(options: ScrollTrackerOptions): () => void {
       deviceType: options.deviceType,
       viewport: createViewportState(),
       depth,
-      maxDepth
+      maxDepth,
     };
 
     options.emit(scrollEvent);
   };
 
   const listener = throttle(emitScroll, throttleMs);
-  window.addEventListener('scroll', listener, { passive: true });
+  window.addEventListener("scroll", listener, { passive: true });
 
   return () => {
-    window.removeEventListener('scroll', listener);
+    window.removeEventListener("scroll", listener);
   };
 }

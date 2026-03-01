@@ -1,4 +1,4 @@
-const DEFAULT_MASK_SELECTORS = ['input', 'textarea', '[contenteditable]'];
+const DEFAULT_MASK_SELECTORS = ["input", "textarea", "[contenteditable]"];
 
 export interface SelectorOptions {
   maskSelectors?: string[];
@@ -7,10 +7,10 @@ export interface SelectorOptions {
 function toCssSafeClassName(className: string): string {
   const value = className.trim();
   if (!value) {
-    return '';
+    return "";
   }
 
-  return value.replace(/[^a-zA-Z0-9_-]/g, '');
+  return value.replace(/[^a-zA-Z0-9_-]/g, "");
 }
 
 export function isMaskedElement(element: Element, selectors: string[] = []): boolean {
@@ -26,7 +26,10 @@ export function matchesAnySelector(element: Element, selectors: string[] = []): 
   return selectors.some((selector) => element.closest(selector) !== null);
 }
 
-export function getElementSelector(target: EventTarget | null, options: SelectorOptions = {}): string | undefined {
+export function getElementSelector(
+  target: EventTarget | null,
+  options: SelectorOptions = {},
+): string | undefined {
   if (!(target instanceof Element)) {
     return undefined;
   }
@@ -48,28 +51,30 @@ export function getElementSelector(target: EventTarget | null, options: Selector
 
     const tagName = current.tagName.toLowerCase();
     const rawClassName =
-      typeof current.className === 'string'
+      typeof current.className === "string"
         ? current.className
-        : current.getAttribute('class') ?? '';
+        : (current.getAttribute("class") ?? "");
     const classNames = rawClassName
       .split(/\s+/)
       .map((value) => toCssSafeClassName(value))
       .filter(Boolean)
       .slice(0, 2)
-      .join('.');
+      .join(".");
 
     const parent = current.parentElement;
     const siblingIndex = parent
-      ? Array.from(parent.children).filter((child) => child.tagName === current?.tagName).indexOf(current) + 1
+      ? Array.from(parent.children)
+          .filter((child) => child.tagName === current?.tagName)
+          .indexOf(current) + 1
       : 0;
 
-    const suffix = siblingIndex > 0 ? `:nth-of-type(${siblingIndex})` : '';
-    const classPart = classNames ? `.${classNames}` : '';
+    const suffix = siblingIndex > 0 ? `:nth-of-type(${siblingIndex})` : "";
+    const classPart = classNames ? `.${classNames}` : "";
 
     segments.unshift(`${tagName}${classPart}${suffix}`);
     current = parent;
     depth += 1;
   }
 
-  return segments.join(' > ') || undefined;
+  return segments.join(" > ") || undefined;
 }

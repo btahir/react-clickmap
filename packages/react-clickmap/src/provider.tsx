@@ -1,18 +1,18 @@
 import {
   createContext,
+  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type ReactNode
-} from 'react';
-import { createCaptureEngine, type CaptureEngine } from './capture/engine';
-import { getOrCreateSessionId } from './capture/session';
-import type { CaptureType, ClickmapAdapter } from './types';
+} from "react";
+import { type CaptureEngine, createCaptureEngine } from "./capture/engine";
+import { getOrCreateSessionId } from "./capture/session";
+import type { CaptureType, ClickmapAdapter } from "./types";
 
-const DEFAULT_CAPTURE: CaptureType[] = ['click', 'scroll'];
-const DEFAULT_MASK_SELECTORS = ['input', 'textarea', '[contenteditable]', '[data-clickmap-mask]'];
+const DEFAULT_CAPTURE: CaptureType[] = ["click", "scroll"];
+const DEFAULT_MASK_SELECTORS = ["input", "textarea", "[contenteditable]", "[data-clickmap-mask]"];
 
 export interface ClickmapProviderProps {
   adapter: ClickmapAdapter;
@@ -44,7 +44,7 @@ export const ClickmapContext = createContext<ClickmapContextValue | undefined>(u
 function assertAdapter(adapter: ClickmapAdapter | undefined): asserts adapter is ClickmapAdapter {
   if (!adapter) {
     throw new Error(
-      'react-clickmap: No adapter provided to <ClickmapProvider>. Use memoryAdapter() for development.'
+      "react-clickmap: No adapter provided to <ClickmapProvider>. Use memoryAdapter() for development.",
     );
   }
 }
@@ -62,8 +62,8 @@ export function ClickmapProvider({
   flushIntervalMs = 5000,
   maxBatchSize = 100,
   enabled = true,
-  children
-}: ClickmapProviderProps): JSX.Element {
+  children,
+}: ClickmapProviderProps) {
   assertAdapter(adapter);
 
   const [isCapturing, setIsCapturing] = useState(false);
@@ -103,7 +103,7 @@ export function ClickmapProvider({
       onEventCaptured: () => {
         setEventCount((current) => current + 1);
         setQueueSize(engineRef.current?.queueSize() ?? 0);
-      }
+      },
     });
 
     engineRef.current = engine;
@@ -129,7 +129,7 @@ export function ClickmapProvider({
     respectDoNotTrack,
     respectGlobalPrivacyControl,
     sampleRate,
-    sessionId
+    sessionId,
   ]);
 
   const contextValue = useMemo<ClickmapContextValue>(
@@ -139,9 +139,9 @@ export function ClickmapProvider({
       queueSize,
       sessionId,
       start,
-      stop
+      stop,
     }),
-    [eventCount, isCapturing, queueSize, sessionId, start, stop]
+    [eventCount, isCapturing, queueSize, sessionId, start, stop],
   );
 
   return <ClickmapContext.Provider value={contextValue}>{children}</ClickmapContext.Provider>;

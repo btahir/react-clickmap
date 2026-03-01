@@ -1,6 +1,6 @@
-import type { CaptureEvent, ClickEvent, DeviceType, PointerType, RageClickEvent } from '../types';
-import { getElementSelector, matchesAnySelector } from '../utils/element-selector';
-import { toViewportPercentages } from '../utils/coordinates';
+import type { CaptureEvent, ClickEvent, DeviceType, PointerType, RageClickEvent } from "../types";
+import { toViewportPercentages } from "../utils/coordinates";
+import { getElementSelector, matchesAnySelector } from "../utils/element-selector";
 
 interface RageClickPoint {
   x: number;
@@ -23,11 +23,11 @@ export interface ClickTrackerOptions {
 }
 
 function toPointerType(pointerType: string): PointerType {
-  if (pointerType === 'mouse' || pointerType === 'touch' || pointerType === 'pen') {
+  if (pointerType === "mouse" || pointerType === "touch" || pointerType === "pen") {
     return pointerType;
   }
 
-  return 'unknown';
+  return "unknown";
 }
 
 function createViewportState() {
@@ -35,7 +35,7 @@ function createViewportState() {
     width: window.innerWidth,
     height: window.innerHeight,
     scrollX: window.scrollX,
-    scrollY: window.scrollY
+    scrollY: window.scrollY,
   };
 }
 
@@ -62,7 +62,7 @@ export function createClickTracker(options: ClickTrackerOptions): () => void {
       event.clientX,
       event.clientY,
       window.innerWidth,
-      window.innerHeight
+      window.innerHeight,
     );
 
     const pointerType = toPointerType(event.pointerType);
@@ -71,7 +71,7 @@ export function createClickTracker(options: ClickTrackerOptions): () => void {
     const clickEvent: ClickEvent = {
       schemaVersion: 1,
       eventVersion: 1,
-      type: 'click',
+      type: "click",
       sessionId: options.sessionId,
       timestamp: now,
       pathname: options.getPathname(),
@@ -81,7 +81,7 @@ export function createClickTracker(options: ClickTrackerOptions): () => void {
       x: coordinates.x,
       y: coordinates.y,
       pointerType,
-      selector
+      selector,
     };
 
     options.emit(clickEvent);
@@ -110,7 +110,7 @@ export function createClickTracker(options: ClickTrackerOptions): () => void {
     const rageEvent: RageClickEvent = {
       schemaVersion: 1,
       eventVersion: 1,
-      type: 'rage-click',
+      type: "rage-click",
       sessionId: options.sessionId,
       timestamp: now,
       pathname: options.getPathname(),
@@ -123,15 +123,15 @@ export function createClickTracker(options: ClickTrackerOptions): () => void {
       selector,
       clusterSize,
       windowMs: rageClickWindowMs,
-      radiusPx: rageClickRadiusPx
+      radiusPx: rageClickRadiusPx,
     };
 
     options.emit(rageEvent);
   };
 
-  window.addEventListener('pointerup', listener, { passive: true });
+  window.addEventListener("pointerup", listener, { passive: true });
 
   return () => {
-    window.removeEventListener('pointerup', listener);
+    window.removeEventListener("pointerup", listener);
   };
 }

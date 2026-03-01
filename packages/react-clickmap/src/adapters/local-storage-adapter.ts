@@ -1,14 +1,14 @@
-import type { CaptureEvent, ClickmapAdapter, HeatmapQuery } from '../types';
-import { memoryAdapter } from './memory-adapter';
+import type { CaptureEvent, ClickmapAdapter, HeatmapQuery } from "../types";
+import { memoryAdapter } from "./memory-adapter";
 
 export interface LocalStorageAdapterOptions {
   key?: string;
 }
 
-const DEFAULT_STORAGE_KEY = 'react-clickmap:events';
+const DEFAULT_STORAGE_KEY = "react-clickmap:events";
 
 function readEvents(key: string): CaptureEvent[] {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return [];
   }
 
@@ -26,7 +26,7 @@ function readEvents(key: string): CaptureEvent[] {
 }
 
 function writeEvents(key: string, events: CaptureEvent[]): void {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return;
   }
 
@@ -43,7 +43,7 @@ export function localStorageAdapter(options: LocalStorageAdapterOptions = {}): C
 
   return {
     async save(events: CaptureEvent[]): Promise<void> {
-      if (typeof window === 'undefined') {
+      if (typeof window === "undefined") {
         await fallback.save(events);
         return;
       }
@@ -53,12 +53,12 @@ export function localStorageAdapter(options: LocalStorageAdapterOptions = {}): C
     },
 
     async load(query: HeatmapQuery): Promise<CaptureEvent[]> {
-      if (typeof window === 'undefined') {
+      if (typeof window === "undefined") {
         return fallback.load(query);
       }
 
       const mem = memoryAdapter(readEvents(key));
       return mem.load(query);
-    }
+    },
   };
 }

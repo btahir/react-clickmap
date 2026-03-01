@@ -1,4 +1,4 @@
-import type { CaptureEvent, ClickmapAdapter, HeatmapQuery } from '../types';
+import type { CaptureEvent, ClickmapAdapter, HeatmapQuery } from "../types";
 
 export interface FetchAdapterOptions {
   endpoint: string;
@@ -21,7 +21,7 @@ function encodeQuery(query: HeatmapQuery): string {
     }
 
     if (Array.isArray(value)) {
-      searchParams.set(key, value.join(','));
+      searchParams.set(key, value.join(","));
       continue;
     }
 
@@ -81,11 +81,11 @@ export function fetchAdapter(options: FetchAdapterOptions): ClickmapAdapter {
 
         if (
           preferBeacon &&
-          typeof navigator !== 'undefined' &&
-          typeof navigator.sendBeacon === 'function' &&
+          typeof navigator !== "undefined" &&
+          typeof navigator.sendBeacon === "function" &&
           payloadSize <= maxPayloadBytes
         ) {
-          const asBlob = new Blob([payload], { type: 'application/json' });
+          const asBlob = new Blob([payload], { type: "application/json" });
           const sent = navigator.sendBeacon(options.endpoint, asBlob);
           if (sent) {
             continue;
@@ -93,13 +93,13 @@ export function fetchAdapter(options: FetchAdapterOptions): ClickmapAdapter {
         }
 
         await fetchImpl(options.endpoint, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'content-type': 'application/json',
-            ...options.headers
+            "content-type": "application/json",
+            ...options.headers,
           },
           keepalive,
-          body: payload
+          body: payload,
         });
       }
     },
@@ -109,10 +109,15 @@ export function fetchAdapter(options: FetchAdapterOptions): ClickmapAdapter {
       const endpoint = options.loadEndpoint ?? options.endpoint;
       const url = queryString ? `${endpoint}?${queryString}` : endpoint;
 
-      const response = await fetchImpl(url, {
-        method: 'GET',
-        headers: options.headers
-      });
+      const requestInit: RequestInit = {
+        method: "GET",
+      };
+
+      if (options.headers) {
+        requestInit.headers = options.headers;
+      }
+
+      const response = await fetchImpl(url, requestInit);
 
       if (!response.ok) {
         throw new Error(`Failed to load clickmap events. Status: ${response.status}`);
@@ -124,6 +129,6 @@ export function fetchAdapter(options: FetchAdapterOptions): ClickmapAdapter {
       }
 
       return payload.events ?? [];
-    }
+    },
   };
 }

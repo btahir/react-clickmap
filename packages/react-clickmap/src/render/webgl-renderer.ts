@@ -1,5 +1,5 @@
-import { fromViewportPercentages } from '../utils/coordinates';
-import type { RenderOptions, RenderPoint, Renderer } from './types';
+import { fromViewportPercentages } from "../utils/coordinates";
+import type { Renderer, RenderOptions, RenderPoint } from "./types";
 
 const VERTEX_SHADER = `
 attribute vec2 a_position;
@@ -39,14 +39,14 @@ void main() {
 function compileShader(gl: WebGLRenderingContext, type: number, source: string): WebGLShader {
   const shader = gl.createShader(type);
   if (!shader) {
-    throw new Error('react-clickmap: Unable to allocate shader');
+    throw new Error("react-clickmap: Unable to allocate shader");
   }
 
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
 
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    const info = gl.getShaderInfoLog(shader) ?? 'unknown shader compile error';
+    const info = gl.getShaderInfoLog(shader) ?? "unknown shader compile error";
     gl.deleteShader(shader);
     throw new Error(`react-clickmap: Shader compile failed: ${info}`);
   }
@@ -60,7 +60,7 @@ function createProgram(gl: WebGLRenderingContext): WebGLProgram {
 
   const program = gl.createProgram();
   if (!program) {
-    throw new Error('react-clickmap: Unable to create WebGL program');
+    throw new Error("react-clickmap: Unable to create WebGL program");
   }
 
   gl.attachShader(program, vertexShader);
@@ -68,7 +68,7 @@ function createProgram(gl: WebGLRenderingContext): WebGLProgram {
   gl.linkProgram(program);
 
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    const info = gl.getProgramInfoLog(program) ?? 'unknown link error';
+    const info = gl.getProgramInfoLog(program) ?? "unknown link error";
     throw new Error(`react-clickmap: Failed to link WebGL program: ${info}`);
   }
 
@@ -88,9 +88,9 @@ export class WebGLRenderer implements Renderer {
   private readonly opacityUniform: WebGLUniformLocation;
 
   constructor(canvas: HTMLCanvasElement) {
-    const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
+    const gl = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
     if (!gl) {
-      throw new Error('react-clickmap: WebGL is unavailable in this browser context');
+      throw new Error("react-clickmap: WebGL is unavailable in this browser context");
     }
 
     const program = createProgram(gl);
@@ -99,18 +99,18 @@ export class WebGLRenderer implements Renderer {
     const weightBuffer = gl.createBuffer();
 
     if (!positionBuffer || !weightBuffer) {
-      throw new Error('react-clickmap: Unable to create WebGL buffers');
+      throw new Error("react-clickmap: Unable to create WebGL buffers");
     }
 
-    const positionAttribute = gl.getAttribLocation(program, 'a_position');
-    const weightAttribute = gl.getAttribLocation(program, 'a_weight');
+    const positionAttribute = gl.getAttribLocation(program, "a_position");
+    const weightAttribute = gl.getAttribLocation(program, "a_weight");
 
-    const resolutionUniform = gl.getUniformLocation(program, 'u_resolution');
-    const pointSizeUniform = gl.getUniformLocation(program, 'u_pointSize');
-    const opacityUniform = gl.getUniformLocation(program, 'u_opacity');
+    const resolutionUniform = gl.getUniformLocation(program, "u_resolution");
+    const pointSizeUniform = gl.getUniformLocation(program, "u_pointSize");
+    const opacityUniform = gl.getUniformLocation(program, "u_opacity");
 
     if (!resolutionUniform || !pointSizeUniform || !opacityUniform) {
-      throw new Error('react-clickmap: Missing required WebGL uniforms');
+      throw new Error("react-clickmap: Missing required WebGL uniforms");
     }
 
     this.canvas = canvas;
@@ -165,6 +165,7 @@ export class WebGLRenderer implements Renderer {
     }
 
     const gl = this.gl;
+    // biome-ignore lint/correctness/useHookAtTopLevel: WebGL API method is not a React hook.
     gl.useProgram(this.program);
 
     gl.enable(gl.BLEND);

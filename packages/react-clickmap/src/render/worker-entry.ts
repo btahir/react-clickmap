@@ -1,21 +1,21 @@
 /* eslint-disable no-restricted-globals */
 
-import type { RenderOptions, RenderPoint } from './types';
+import type { RenderOptions, RenderPoint } from "./types";
 
 interface WorkerRenderMessage {
-  type: 'render';
+  type: "render";
   points: RenderPoint[];
   options: RenderOptions;
 }
 
 interface WorkerResizeMessage {
-  type: 'resize';
+  type: "resize";
   width: number;
   height: number;
 }
 
 interface WorkerCanvasMessage {
-  type: 'canvas';
+  type: "canvas";
   canvas: OffscreenCanvas;
 }
 
@@ -27,9 +27,9 @@ let context: OffscreenCanvasRenderingContext2D | null = null;
 self.onmessage = (event: MessageEvent<WorkerMessage>): void => {
   const message = event.data;
 
-  if (message.type === 'canvas') {
+  if (message.type === "canvas") {
     canvas = message.canvas;
-    context = canvas.getContext('2d');
+    context = canvas.getContext("2d");
     return;
   }
 
@@ -37,13 +37,13 @@ self.onmessage = (event: MessageEvent<WorkerMessage>): void => {
     return;
   }
 
-  if (message.type === 'resize') {
+  if (message.type === "resize") {
     canvas.width = message.width;
     canvas.height = message.height;
     return;
   }
 
-  if (message.type === 'render') {
+  if (message.type === "render") {
     context.clearRect(0, 0, canvas.width, canvas.height);
 
     for (const point of message.points) {
