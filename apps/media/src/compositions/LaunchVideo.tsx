@@ -544,6 +544,61 @@ function CTAScene({ frame }: { frame: number }) {
   );
 }
 
+const SCENE_TRANSITION_FRAMES = 14;
+const RESULT_START = 0;
+const MODE_START = 114;
+const ROUTE_START = 210;
+const CTA_START = 312;
+const VIDEO_END = 390;
+
+function getSceneTransitionStyle({
+  frame,
+  start,
+  nextStart,
+}: {
+  frame: number;
+  start: number;
+  nextStart: number | null;
+}) {
+  const fadeIn =
+    start === 0
+      ? 1
+      : interpolate(
+          frame,
+          [start - SCENE_TRANSITION_FRAMES, start],
+          [0, 1],
+          {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+            easing: Easing.inOut(Easing.cubic),
+          },
+        );
+
+  const fadeOut =
+    nextStart === null
+      ? 1
+      : interpolate(
+          frame,
+          [nextStart - SCENE_TRANSITION_FRAMES, nextStart],
+          [1, 0],
+          {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+            easing: Easing.inOut(Easing.cubic),
+          },
+        );
+
+  const opacity = fadeIn * fadeOut;
+  const inLift = 1 - fadeIn;
+  const outLift = 1 - fadeOut;
+
+  return {
+    opacity,
+    transform: `translateY(${inLift * 18 - outLift * 10}px) scale(${1 - outLift * 0.01})`,
+    filter: `blur(${outLift * 1.2}px)`,
+  } as const;
+}
+
 export const LaunchVideo = () => {
   const frame = useCurrentFrame();
 
@@ -551,20 +606,37 @@ export const LaunchVideo = () => {
     <AbsoluteFill style={{ fontFamily: FONT_STACK, color: BRAND.text }}>
       <Background frame={frame} />
 
-      <Sequence from={0} durationInFrames={114}>
-        <ResultFirstScene frame={frame} />
+      <Sequence from={RESULT_START} durationInFrames={MODE_START - RESULT_START}>
+        <AbsoluteFill style={getSceneTransitionStyle({ frame, start: RESULT_START, nextStart: MODE_START })}>
+          <ResultFirstScene frame={frame} />
+        </AbsoluteFill>
       </Sequence>
 
-      <Sequence from={114} durationInFrames={96}>
-        <ModeSprintScene frame={frame - 114} />
+      <Sequence
+        from={MODE_START - SCENE_TRANSITION_FRAMES}
+        durationInFrames={ROUTE_START - (MODE_START - SCENE_TRANSITION_FRAMES)}
+      >
+        <AbsoluteFill style={getSceneTransitionStyle({ frame, start: MODE_START, nextStart: ROUTE_START })}>
+          <ModeSprintScene frame={frame - MODE_START} />
+        </AbsoluteFill>
       </Sequence>
 
-      <Sequence from={210} durationInFrames={102}>
-        <RouteMapScene frame={frame - 210} />
+      <Sequence
+        from={ROUTE_START - SCENE_TRANSITION_FRAMES}
+        durationInFrames={CTA_START - (ROUTE_START - SCENE_TRANSITION_FRAMES)}
+      >
+        <AbsoluteFill style={getSceneTransitionStyle({ frame, start: ROUTE_START, nextStart: CTA_START })}>
+          <RouteMapScene frame={frame - ROUTE_START} />
+        </AbsoluteFill>
       </Sequence>
 
-      <Sequence from={312} durationInFrames={78}>
-        <CTAScene frame={frame - 312} />
+      <Sequence
+        from={CTA_START - SCENE_TRANSITION_FRAMES}
+        durationInFrames={VIDEO_END - (CTA_START - SCENE_TRANSITION_FRAMES)}
+      >
+        <AbsoluteFill style={getSceneTransitionStyle({ frame, start: CTA_START, nextStart: null })}>
+          <CTAScene frame={frame - CTA_START} />
+        </AbsoluteFill>
       </Sequence>
     </AbsoluteFill>
   );
