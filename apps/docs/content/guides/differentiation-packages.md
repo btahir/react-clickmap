@@ -23,7 +23,7 @@ npm install @react-clickmap/next
 ```ts
 // app/api/clickmap/route.ts
 import { createClickmapRouteHandlers } from "@react-clickmap/next";
-import { createPostgresAdapter } from "react-clickmap-postgres";
+import { createPostgresAdapter } from "@react-clickmap/postgres";
 import { Pool } from "pg";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -51,12 +51,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
 See the full [Next.js App Router guide](/docs/guides/nextjs-app-router) for detailed setup instructions.
 
-## `react-clickmap-postgres`
+## `@react-clickmap/postgres`
 
 Direct Postgres persistence with parameterized queries.
 
 ```bash
-npm install react-clickmap-postgres
+npm install @react-clickmap/postgres
 ```
 
 ### What it provides
@@ -75,12 +75,12 @@ npm install react-clickmap-postgres
 
 See the [Persistence Guide](/docs/guides/persistence) for the full SQL schema and client-specific setup.
 
-## `react-clickmap-supabase`
+## `@react-clickmap/supabase`
 
 Supabase REST API adapter. No custom backend code needed.
 
 ```bash
-npm install react-clickmap-supabase
+npm install @react-clickmap/supabase
 ```
 
 ### What it provides
@@ -99,7 +99,7 @@ npm install react-clickmap-supabase
 ### Quick setup
 
 ```tsx
-import { createSupabaseAdapter } from "react-clickmap-supabase";
+import { createSupabaseAdapter } from "@react-clickmap/supabase";
 
 const adapter = createSupabaseAdapter({
   url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -142,12 +142,12 @@ console.log(snapshot.deviceMix);        // [{ device: "desktop", count: 30201, r
 console.log(snapshot.timeline);         // [{ hour: "00:00", count: 120 }, ...]
 ```
 
-## `react-clickmap-cli`
+## `@react-clickmap/cli`
 
 Local development preview tool.
 
 ```bash
-npx react-clickmap-cli --port 3334
+npx @react-clickmap/cli --port 3334
 ```
 
 ### What it provides
@@ -161,7 +161,7 @@ npx react-clickmap-cli --port 3334
 
 1. Start the CLI:
    ```bash
-   npx react-clickmap-cli --port 3334
+   npx @react-clickmap/cli --port 3334
    ```
 
 2. Point your adapter at it:

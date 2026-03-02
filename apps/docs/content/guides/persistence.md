@@ -95,12 +95,12 @@ const adapter = fetchAdapter({
 
 ## Database persistence: Postgres
 
-This is the recommended production setup. The `react-clickmap-postgres` package provides a ready-made adapter with parameterized queries, idempotent inserts, and server-side aggregation.
+This is the recommended production setup. The `@react-clickmap/postgres` package provides a ready-made adapter with parameterized queries, idempotent inserts, and server-side aggregation.
 
 ### Step 1: Install
 
 ```bash
-npm install react-clickmap-postgres
+npm install @react-clickmap/postgres
 ```
 
 ### Step 2: Create the table
@@ -172,7 +172,7 @@ The adapter accepts any object with a `query(text, params)` method. This works w
 
 ```ts
 import { Pool } from "pg";
-import { createPostgresAdapter } from "react-clickmap-postgres";
+import { createPostgresAdapter } from "@react-clickmap/postgres";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
@@ -183,7 +183,7 @@ const adapter = createPostgresAdapter({ sql: pool });
 
 ```ts
 import postgres from "postgres";
-import { createPostgresAdapter } from "react-clickmap-postgres";
+import { createPostgresAdapter } from "@react-clickmap/postgres";
 
 const sql = postgres(process.env.DATABASE_URL);
 
@@ -203,7 +203,7 @@ const adapter = createPostgresAdapter({
 ```ts
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { createPostgresAdapter } from "react-clickmap-postgres";
+import { createPostgresAdapter } from "@react-clickmap/postgres";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle(pool);
@@ -226,7 +226,7 @@ The adapter runs on your server. Your client uses `fetchAdapter` to talk to it o
 // server.ts
 import express from "express";
 import { Pool } from "pg";
-import { createPostgresAdapter } from "react-clickmap-postgres";
+import { createPostgresAdapter } from "@react-clickmap/postgres";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = createPostgresAdapter({ sql: pool });
@@ -300,12 +300,12 @@ Table names are validated against `[a-zA-Z_][a-zA-Z0-9_]*` to prevent SQL inject
 
 ## Database persistence: Supabase
 
-If you use Supabase, the `react-clickmap-supabase` adapter talks directly to the PostgREST API. No custom backend code needed — your client can save and load events directly.
+If you use Supabase, the `@react-clickmap/supabase` adapter talks directly to the PostgREST API. No custom backend code needed — your client can save and load events directly.
 
 ### Step 1: Install
 
 ```bash
-npm install react-clickmap-supabase
+npm install @react-clickmap/supabase
 ```
 
 ### Step 2: Create the table
@@ -338,7 +338,7 @@ Adjust these policies to match your security requirements.
 ### Step 4: Create the adapter
 
 ```ts
-import { createSupabaseAdapter } from "react-clickmap-supabase";
+import { createSupabaseAdapter } from "@react-clickmap/supabase";
 
 const adapter = createSupabaseAdapter({
   url: "https://your-project.supabase.co",
@@ -350,7 +350,7 @@ const adapter = createSupabaseAdapter({
 
 ```tsx
 import { ClickmapProvider, Heatmap } from "react-clickmap";
-import { createSupabaseAdapter } from "react-clickmap-supabase";
+import { createSupabaseAdapter } from "@react-clickmap/supabase";
 
 const adapter = createSupabaseAdapter({
   url: process.env.NEXT_PUBLIC_SUPABASE_URL!,

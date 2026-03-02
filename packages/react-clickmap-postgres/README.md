@@ -1,4 +1,4 @@
-# react-clickmap-postgres
+# @react-clickmap/postgres
 
 Postgres persistence add-on for `react-clickmap`.
 
@@ -11,7 +11,7 @@ This package provides:
 ## Install
 
 ```bash
-pnpm add react-clickmap-postgres react-clickmap
+pnpm add @react-clickmap/postgres react-clickmap
 ```
 
 ## Apply schema
@@ -21,7 +21,7 @@ Run the SQL in [`sql/0001_init.sql`](./sql/0001_init.sql) against your database.
 ## Adapter usage
 
 ```ts
-import { createPostgresAdapter } from "react-clickmap-postgres";
+import { createPostgresAdapter } from "@react-clickmap/postgres";
 
 const adapter = createPostgresAdapter({
   sql: {

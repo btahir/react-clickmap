@@ -91,8 +91,8 @@ react-clickmap is storage-agnostic. Pick the adapter that matches your stack:
 | `memoryAdapter()` | built-in | Development and testing — events live in memory |
 | `localStorageAdapter()` | built-in | Browser-only prototyping — events persist in localStorage |
 | `fetchAdapter()` | built-in | Production — sends events to your HTTP endpoint |
-| `createPostgresAdapter()` | `npm install react-clickmap-postgres` | Direct Postgres persistence with parameterized queries |
-| `createSupabaseAdapter()` | `npm install react-clickmap-supabase` | Supabase REST API — no backend code needed |
+| `createPostgresAdapter()` | `npm install @react-clickmap/postgres` | Direct Postgres persistence with parameterized queries |
+| `createSupabaseAdapter()` | `npm install @react-clickmap/supabase` | Supabase REST API — no backend code needed |
 
 See the [Persistence Guide](/docs/guides/persistence) for detailed setup instructions with each adapter.
 

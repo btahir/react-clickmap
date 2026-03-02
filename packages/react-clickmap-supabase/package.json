@@ -1,5 +1,5 @@
 {
-  "name": "react-clickmap-supabase",
+  "name": "@react-clickmap/supabase",
   "version": "0.1.0",
   "description": "Supabase persistence adapter for react-clickmap.",
   "license": "MIT",

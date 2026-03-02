@@ -1,5 +1,5 @@
 {
-  "name": "react-clickmap-postgres",
+  "name": "@react-clickmap/postgres",
   "version": "0.1.0",
   "description": "Postgres persistence adapter and SQL schema for react-clickmap.",
   "license": "MIT",

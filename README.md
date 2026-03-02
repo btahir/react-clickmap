@@ -155,11 +155,11 @@ Browser                         Your Server
 | Package | Description |
 |---|---|
 | [`react-clickmap`](packages/react-clickmap) | Core library — capture engine, adapters, rendering components |
-| [`react-clickmap-postgres`](packages/react-clickmap-postgres) | Postgres persistence adapter with parameterized queries |
-| [`react-clickmap-supabase`](packages/react-clickmap-supabase) | Supabase adapter — zero backend code needed |
+| [`@react-clickmap/postgres`](packages/react-clickmap-postgres) | Postgres persistence adapter with parameterized queries |
+| [`@react-clickmap/supabase`](packages/react-clickmap-supabase) | Supabase adapter — zero backend code needed |
 | [`@react-clickmap/next`](packages/react-clickmap-next) | Next.js helpers — App Router API routes and server components |
 | [`@react-clickmap/dashboard`](packages/react-clickmap-dashboard) | Pre-built analytics dashboard components |
-| [`react-clickmap-cli`](packages/react-clickmap-cli) | Local preview CLI — visualize heatmaps without deploying |
+| [`@react-clickmap/cli`](packages/react-clickmap-cli) | Local preview CLI — visualize heatmaps without deploying |
 
 ## Persistence
 
@@ -168,11 +168,11 @@ The core library is storage-agnostic. Use a built-in adapter or write your own:
 ### Option 1: Postgres (recommended)
 
 ```bash
-npm install react-clickmap-postgres
+npm install @react-clickmap/postgres
 ```
 
 ```ts
-import { createPostgresAdapter } from 'react-clickmap-postgres';
+import { createPostgresAdapter } from '@react-clickmap/postgres';
 
 const adapter = createPostgresAdapter({
   sql: pool, // any object with query(text, params) => { rows, rowCount }
@@ -182,11 +182,11 @@ const adapter = createPostgresAdapter({
 ### Option 2: Supabase
 
 ```bash
-npm install react-clickmap-supabase
+npm install @react-clickmap/supabase
 ```
 
 ```ts
-import { createSupabaseAdapter } from 'react-clickmap-supabase';
+import { createSupabaseAdapter } from '@react-clickmap/supabase';
 
 const adapter = createSupabaseAdapter({
   url: process.env.SUPABASE_URL,

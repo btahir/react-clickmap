@@ -15,7 +15,7 @@ interface BuiltWhere {
 
 function assertTableName(tableName: string): string {
   if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(tableName)) {
-    throw new Error(`react-clickmap-postgres: invalid table name "${tableName}"`);
+    throw new Error(`@react-clickmap/postgres: invalid table name "${tableName}"`);
   }
 
   return tableName;
@@ -338,7 +338,7 @@ export function createPostgresAdapter(options: PostgresAdapterOptions): Clickmap
       const { whereClause, params } = buildWhereClause(query);
       if (!whereClause) {
         throw new Error(
-          "react-clickmap-postgres: deleteEvents requires at least one filter in the query",
+          "@react-clickmap/postgres: deleteEvents requires at least one filter in the query",
         );
       }
 

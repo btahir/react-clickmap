@@ -1,17 +1,17 @@
-# react-clickmap-cli
+# @react-clickmap/cli
 
 Local self-hosted preview API and dashboard for `react-clickmap`.
 
 ## Install
 
 ```bash
-pnpm add -D react-clickmap-cli
+pnpm add -D @react-clickmap/cli
 ```
 
 Or run without installing:
 
 ```bash
-npx react-clickmap-cli
+npx @react-clickmap/cli
 ```
 
 ## Start local preview

@@ -11,9 +11,9 @@ npm install react-clickmap @react-clickmap/next
 For database persistence, also install an adapter:
 
 ```bash
-npm install react-clickmap-postgres   # if using Postgres
+npm install @react-clickmap/postgres   # if using Postgres
 # or
-npm install react-clickmap-supabase   # if using Supabase
+npm install @react-clickmap/supabase   # if using Supabase
 ```
 
 ## Project structure
@@ -41,7 +41,7 @@ The `@react-clickmap/next` package provides pre-built route handlers. You just p
 ```ts
 // app/api/clickmap/route.ts
 import { createClickmapRouteHandlers } from "@react-clickmap/next";
-import { createPostgresAdapter } from "react-clickmap-postgres";
+import { createPostgresAdapter } from "@react-clickmap/postgres";
 import { Pool } from "pg";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -227,7 +227,7 @@ Here's the complete setup in 4 files:
 ```ts
 // 1. app/api/clickmap/route.ts (server)
 import { createClickmapRouteHandlers } from "@react-clickmap/next";
-import { createPostgresAdapter } from "react-clickmap-postgres";
+import { createPostgresAdapter } from "@react-clickmap/postgres";
 import { Pool } from "pg";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });

@@ -147,14 +147,14 @@ const adapter = createAdapter({
 
 ## Add-on adapters
 
-### `createPostgresAdapter(options)` — `react-clickmap-postgres`
+### `createPostgresAdapter(options)` — `@react-clickmap/postgres`
 
 ```bash
-npm install react-clickmap-postgres
+npm install @react-clickmap/postgres
 ```
 
 ```ts
-import { createPostgresAdapter } from "react-clickmap-postgres";
+import { createPostgresAdapter } from "@react-clickmap/postgres";
 
 const adapter = createPostgresAdapter({
   sql: pool,                    // any { query(text, params) => { rows, rowCount } }
@@ -168,14 +168,14 @@ Uses `ON CONFLICT (event_id) DO NOTHING` for idempotent inserts. Supports server
 
 See the [Persistence Guide](/docs/guides/persistence) for the full SQL schema and setup instructions.
 
-### `createSupabaseAdapter(options)` — `react-clickmap-supabase`
+### `createSupabaseAdapter(options)` — `@react-clickmap/supabase`
 
 ```bash
-npm install react-clickmap-supabase
+npm install @react-clickmap/supabase
 ```
 
 ```ts
-import { createSupabaseAdapter } from "react-clickmap-supabase";
+import { createSupabaseAdapter } from "@react-clickmap/supabase";
 
 const adapter = createSupabaseAdapter({
   url: "https://your-project.supabase.co",

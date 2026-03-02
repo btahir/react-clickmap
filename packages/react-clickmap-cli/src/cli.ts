@@ -24,7 +24,7 @@ interface CliOptions {
 }
 
 function printHelp(): void {
-  console.log(`react-clickmap-cli
+  console.log(`@react-clickmap/cli
 
 Usage:
   react-clickmap [options]

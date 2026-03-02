@@ -1,5 +1,5 @@
 {
-  "name": "react-clickmap-cli",
+  "name": "@react-clickmap/cli",
   "version": "0.1.0",
   "description": "Local CLI dev server and preview dashboard for react-clickmap.",
   "license": "MIT",
