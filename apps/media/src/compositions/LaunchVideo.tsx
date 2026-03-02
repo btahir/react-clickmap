@@ -3,10 +3,12 @@ import {
   Easing,
   Sequence,
   interpolate,
+  staticFile,
   spring,
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+import { Audio } from "@remotion/media";
 import { BRAND, FONT_STACK, MONO_STACK } from "../theme";
 
 type OverlayMode = "heatmap" | "clickmap" | "attention" | "scroll";
@@ -42,6 +44,41 @@ function sceneTitleOpacity(frame: number, offset = 0): number {
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.cubic),
   });
+}
+
+function SceneValueSubtitle({ frame, text }: { frame: number; text: string }) {
+  const opacity = interpolate(frame, [8, 24], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
+  });
+
+  return (
+    <div
+      style={{
+        marginTop: 16,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 12,
+        borderRadius: 12,
+        border: "1px solid rgba(148, 204, 255, 0.3)",
+        background: "rgba(8, 16, 33, 0.66)",
+        padding: "10px 14px",
+        opacity,
+      }}
+    >
+      <span
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          background: "linear-gradient(135deg, #5eead4, #60a5fa)",
+          boxShadow: "0 0 10px rgba(94, 234, 212, 0.45)",
+        }}
+      />
+      <span style={{ fontSize: 21, color: "#d9ecff", lineHeight: 1.25 }}>{text}</span>
+    </div>
+  );
 }
 
 function Background({ frame }: { frame: number }) {
@@ -257,6 +294,10 @@ function ResultFirstScene({ frame }: { frame: number }) {
         <div style={{ marginTop: 12, color: BRAND.muted, fontSize: 28, lineHeight: 1.32, maxWidth: 980 }}>
           Live interaction overlays on real UI. No script-tag dashboard theater.
         </div>
+        <SceneValueSubtitle
+          frame={frame}
+          text="Pinpoint friction and dead zones in seconds, before conversion drops."
+        />
       </div>
 
       <div
@@ -329,7 +370,7 @@ function ResultFirstScene({ frame }: { frame: number }) {
 }
 
 function ModeSprintScene({ frame }: { frame: number }) {
-  const modeIndex = Math.min(3, Math.floor(frame / 24));
+  const modeIndex = Math.min(3, Math.floor(frame / 38));
   const mode = overlayLabels[modeIndex]?.mode ?? "heatmap";
   const titleIn = sceneTitleOpacity(frame);
 
@@ -340,6 +381,10 @@ function ModeSprintScene({ frame }: { frame: number }) {
         <div style={{ marginTop: 10, color: BRAND.muted, fontSize: 27 }}>
           Heatmap, clickmap, attention, and scroll-depth in one workflow.
         </div>
+        <SceneValueSubtitle
+          frame={frame}
+          text="Compare behavior layers instantly and move from guesswork to prioritization."
+        />
       </div>
 
       <BrowserFrame title="/signup" mode={mode} frame={frame} width={1760} height={640} />
@@ -381,6 +426,10 @@ function RouteMapScene({ frame }: { frame: number }) {
         <div style={{ marginTop: 10, color: BRAND.muted, fontSize: 27, maxWidth: 1060 }}>
           Capture in the browser, persist in your DB, and ship changes based on real friction maps.
         </div>
+        <SceneValueSubtitle
+          frame={frame}
+          text="Keep full data ownership with Postgres-first storage and adapter flexibility."
+        />
       </div>
 
       <div
@@ -522,6 +571,11 @@ function CTAScene({ frame }: { frame: number }) {
         React-native clickmaps with zero cloud requirement and full data ownership.
       </div>
 
+      <SceneValueSubtitle
+        frame={frame}
+        text="Ship faster with proof, not opinions, across every funnel touchpoint."
+      />
+
       <div
         style={{
           marginTop: 36,
@@ -545,11 +599,20 @@ function CTAScene({ frame }: { frame: number }) {
 }
 
 const SCENE_TRANSITION_FRAMES = 14;
+const EXTRA_SCENE_FRAMES = 60;
+const BASE_RESULT_DURATION = 114;
+const BASE_MODE_DURATION = 96;
+const BASE_ROUTE_DURATION = 102;
+const BASE_CTA_DURATION = 78;
+const RESULT_DURATION = BASE_RESULT_DURATION + EXTRA_SCENE_FRAMES;
+const MODE_DURATION = BASE_MODE_DURATION + EXTRA_SCENE_FRAMES;
+const ROUTE_DURATION = BASE_ROUTE_DURATION + EXTRA_SCENE_FRAMES;
+const CTA_DURATION = BASE_CTA_DURATION + EXTRA_SCENE_FRAMES;
 const RESULT_START = 0;
-const MODE_START = 114;
-const ROUTE_START = 210;
-const CTA_START = 312;
-const VIDEO_END = 390;
+const MODE_START = RESULT_START + RESULT_DURATION;
+const ROUTE_START = MODE_START + MODE_DURATION;
+const CTA_START = ROUTE_START + ROUTE_DURATION;
+const VIDEO_END = CTA_START + CTA_DURATION;
 
 function getSceneTransitionStyle({
   frame,
@@ -601,9 +664,24 @@ function getSceneTransitionStyle({
 
 export const LaunchVideo = () => {
   const frame = useCurrentFrame();
+  const { durationInFrames } = useVideoConfig();
 
   return (
     <AbsoluteFill style={{ fontFamily: FONT_STACK, color: BRAND.text }}>
+      <Audio
+        src={staticFile("audio/firmware-heartbeat.mp3")}
+        volume={(f) => {
+          const fadeIn = interpolate(f, [0, 18], [0, 0.38], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          });
+          const fadeOut = interpolate(f, [durationInFrames - 28, durationInFrames], [1, 0], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          });
+          return fadeIn * fadeOut;
+        }}
+      />
       <Background frame={frame} />
 
       <Sequence from={RESULT_START} durationInFrames={MODE_START - RESULT_START}>
