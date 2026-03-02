@@ -1,5 +1,6 @@
 import {
   AbsoluteFill,
+  Easing,
   interpolate,
   useCurrentFrame,
   useVideoConfig,
@@ -29,10 +30,18 @@ const DOTS: Dot[] = [
 const GRID_LINES = Array.from({ length: 18 }, (_, index) => index + 1);
 
 const metricCards = [
-  { label: "Events", value: "2.3M" },
-  { label: "Rage Rate", value: "3.2%" },
-  { label: "Dead Click", value: "1.4%" },
-  { label: "Storage", value: "Your DB" },
+  { label: "Events", value: "2.3M", color: BRAND.text },
+  { label: "Rage Rate", value: "3.2%", color: "#ff9090" },
+  { label: "Dead Click", value: "1.4%", color: BRAND.warning },
+  { label: "Storage", value: "Your DB", color: BRAND.primary },
+];
+
+const clickRipples = [
+  { x: 0.66, y: 0.35, delay: 10 },
+  { x: 0.75, y: 0.50, delay: 42 },
+  { x: 0.58, y: 0.62, delay: 78 },
+  { x: 0.82, y: 0.40, delay: 115 },
+  { x: 0.52, y: 0.45, delay: 145 },
 ];
 
 export const READMEHero = () => {
@@ -45,6 +54,14 @@ export const READMEHero = () => {
   };
 
   const shimmer = interpolate(frame % Math.round(fps * 3), [0, fps * 3], [0.12, 0.34]);
+
+  const eventCount = Math.floor(
+    interpolate(frame, [0, 120], [2287403, 2287892], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    }),
+  );
+  const formattedCount = `${(eventCount / 1_000_000).toFixed(1)}M`;
 
   return (
     <AbsoluteFill
@@ -139,9 +156,13 @@ export const READMEHero = () => {
                 padding: "12px 16px",
                 fontSize: 19,
                 fontWeight: 700,
+                fontFamily: MONO_STACK,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
               }}
             >
-              npm install react-clickmap
+              <span style={{ color: BRAND.primary }}>$</span> npm install react-clickmap
             </div>
             <div
               style={{
@@ -155,6 +176,24 @@ export const READMEHero = () => {
             >
               Zero cloud
             </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+            {["MIT Licensed", "< 13 KB", "WebGL Rendered"].map((tag) => (
+              <div
+                key={tag}
+                style={{
+                  borderRadius: 999,
+                  border: "1px solid rgba(148, 194, 255, 0.22)",
+                  padding: "4px 10px",
+                  color: "#a0b8e0",
+                  fontSize: 14,
+                  fontWeight: 500,
+                }}
+              >
+                {tag}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -194,7 +233,14 @@ export const READMEHero = () => {
                 textTransform: "uppercase",
               }}
             >
-              <span>Live Overlay</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", gap: 5 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: "rgba(255,95,95,0.65)" }} />
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: "rgba(255,209,102,0.65)" }} />
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: "rgba(94,234,212,0.65)" }} />
+                </div>
+                <span style={{ marginLeft: 4 }}>Live Overlay</span>
+              </div>
               <span style={{ fontFamily: MONO_STACK, color: "#9ec2ff" }}>mode: heatmap</span>
             </div>
 
@@ -210,7 +256,7 @@ export const READMEHero = () => {
                   gap: 8,
                 }}
               >
-                {metricCards.map((card) => (
+                {metricCards.map((card, index) => (
                   <div
                     key={card.label}
                     style={{
@@ -221,7 +267,9 @@ export const READMEHero = () => {
                     }}
                   >
                     <div style={{ fontSize: 11, color: "#8fa7d9", marginBottom: 6 }}>{card.label}</div>
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>{card.value}</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: card.color }}>
+                      {index === 0 ? formattedCount : card.value}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -255,6 +303,38 @@ export const READMEHero = () => {
                         borderRadius: "50%",
                         background: `radial-gradient(circle, rgba(255,95,95,${0.2 * glow}) 0%, rgba(255,209,102,${0.3 * glow}) 34%, rgba(94,234,212,${0.22 * glow}) 58%, rgba(94,234,212,0) 100%)`,
                         filter: `blur(${8 - dot.strength * 2}px)`,
+                      }}
+                    />
+                  );
+                })}
+
+                {clickRipples.map((ripple) => {
+                  const rippleFrame = (frame - ripple.delay + 180) % 180;
+                  const rippleProgress = interpolate(rippleFrame, [0, 30], [0, 1], {
+                    extrapolateLeft: "clamp",
+                    extrapolateRight: "clamp",
+                    easing: Easing.out(Easing.cubic),
+                  });
+                  const rippleOpacity = interpolate(rippleFrame, [0, 8, 30], [0, 0.7, 0], {
+                    extrapolateLeft: "clamp",
+                    extrapolateRight: "clamp",
+                  });
+
+                  return (
+                    <div
+                      key={`ripple-${ripple.x}-${ripple.y}`}
+                      style={{
+                        position: "absolute",
+                        left: `${ripple.x * 100}%`,
+                        top: `${ripple.y * 100}%`,
+                        transform: "translate(-50%, -50%)",
+                        width: 6 + rippleProgress * 30,
+                        height: 6 + rippleProgress * 30,
+                        borderRadius: "50%",
+                        border: `1.5px solid rgba(255, 209, 102, ${rippleOpacity})`,
+                        background: rippleProgress < 0.15
+                          ? `rgba(255, 209, 102, ${rippleOpacity * 0.6})`
+                          : "transparent",
                       }}
                     />
                   );

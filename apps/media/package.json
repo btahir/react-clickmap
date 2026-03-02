@@ -14,7 +14,8 @@
     "render:hero:poster": "remotion still src/index.ts READMEHeroPoster ../../assets/readme-hero-poster.png",
     "render:launch": "remotion render src/index.ts LaunchVideo ../../assets/launch-video.mp4 --codec=h264 --crf=18",
     "render:launch:thumb": "remotion still src/index.ts LaunchThumbnail ../../assets/launch-thumbnail.png",
-    "render:all": "pnpm run render:hero:gif && pnpm run render:hero:poster && pnpm run render:launch && pnpm run render:launch:thumb"
+    "render:feature": "remotion still src/index.ts FeatureShowcase ../../assets/feature-showcase.png",
+    "render:all": "pnpm run render:hero:gif && pnpm run render:hero:poster && pnpm run render:launch && pnpm run render:launch:thumb && pnpm run render:feature"
   },
   "dependencies": {
     "@remotion/media": "^4.0.431",

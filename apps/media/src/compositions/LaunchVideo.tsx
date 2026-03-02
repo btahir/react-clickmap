@@ -143,7 +143,14 @@ function BrowserFrame({
           padding: "0 16px",
         }}
       >
-        <div style={{ color: "#d7e8ff", fontSize: 20, fontWeight: 600 }}>{title}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", gap: 6 }}>
+            <div style={{ width: 12, height: 12, borderRadius: "50%", background: "rgba(255,95,95,0.7)" }} />
+            <div style={{ width: 12, height: 12, borderRadius: "50%", background: "rgba(255,209,102,0.7)" }} />
+            <div style={{ width: 12, height: 12, borderRadius: "50%", background: "rgba(94,234,212,0.7)" }} />
+          </div>
+          <div style={{ color: "#d7e8ff", fontSize: 20, fontWeight: 600, marginLeft: 8 }}>{title}</div>
+        </div>
         <div style={{ color: "#aac8ff", fontFamily: MONO_STACK, fontSize: 16 }}>mode: {mode}</div>
       </div>
 
@@ -275,6 +282,147 @@ function BrowserFrame({
           : null}
       </div>
     </div>
+  );
+}
+
+function TitleScene({ frame }: { frame: number }) {
+  const { fps } = useVideoConfig();
+
+  const logoScale = spring({
+    frame,
+    fps,
+    config: { damping: 120, stiffness: 80 },
+    durationInFrames: 30,
+  });
+
+  const taglineOpacity = interpolate(frame, [18, 36], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
+  });
+
+  const installOpacity = interpolate(frame, [32, 48], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
+  });
+
+  const shimmer = interpolate(frame % 90, [0, 90], [-100, 200]);
+
+  return (
+    <AbsoluteFill
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: FONT_STACK,
+        color: BRAND.text,
+        gap: 20,
+      }}
+    >
+      <div
+        style={{
+          opacity: logoScale,
+          transform: `scale(${0.85 + logoScale * 0.15})`,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 24,
+        }}
+      >
+        <div
+          style={{
+            borderRadius: 999,
+            border: "1px solid rgba(94, 234, 212, 0.55)",
+            color: "#b8fff5",
+            padding: "8px 18px",
+            fontSize: 18,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            fontWeight: 700,
+          }}
+        >
+          Introducing
+        </div>
+
+        <div
+          style={{
+            fontSize: 96,
+            fontWeight: 800,
+            letterSpacing: "-0.03em",
+            lineHeight: 1,
+            background: `linear-gradient(135deg, #eef4ff 0%, #5eead4 45%, #60a5fa 65%, #eef4ff 100%)`,
+            backgroundSize: "300% 100%",
+            backgroundPosition: `${shimmer}% 0`,
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}
+        >
+          react-clickmap
+        </div>
+      </div>
+
+      <div
+        style={{
+          opacity: taglineOpacity,
+          fontSize: 36,
+          color: BRAND.muted,
+          textAlign: "center",
+          maxWidth: 800,
+          lineHeight: 1.3,
+        }}
+      >
+        Privacy-first heatmaps for React.
+        <br />
+        Your data, your database, zero cloud.
+      </div>
+
+      <div
+        style={{
+          opacity: installOpacity,
+          marginTop: 8,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 12,
+          borderRadius: 14,
+          border: "1px solid rgba(94,234,212,0.5)",
+          background: "rgba(94,234,212,0.1)",
+          padding: "14px 22px",
+          fontSize: 24,
+          fontFamily: MONO_STACK,
+          fontWeight: 600,
+        }}
+      >
+        <span style={{ color: BRAND.primary }}>$</span> npm install react-clickmap
+      </div>
+
+      <div
+        style={{
+          opacity: installOpacity,
+          display: "flex",
+          gap: 16,
+          marginTop: 8,
+        }}
+      >
+        {["MIT Licensed", "< 13 KB", "Zero Cloud", "WebGL Rendered"].map((tag) => (
+          <div
+            key={tag}
+            style={{
+              borderRadius: 999,
+              border: "1px solid rgba(148, 194, 255, 0.3)",
+              padding: "6px 14px",
+              color: "#b8ccf0",
+              fontSize: 16,
+              fontWeight: 500,
+            }}
+          >
+            {tag}
+          </div>
+        ))}
+      </div>
+    </AbsoluteFill>
   );
 }
 
@@ -541,16 +689,28 @@ function CTAScene({ frame }: { frame: number }) {
     durationInFrames: 28,
   });
 
+  const shimmer = interpolate(frame % 60, [0, 60], [-50, 150]);
+
   return (
-    <AbsoluteFill style={{ padding: "92px", fontFamily: FONT_STACK, color: BRAND.text }}>
+    <AbsoluteFill
+      style={{
+        padding: "92px",
+        fontFamily: FONT_STACK,
+        color: BRAND.text,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+      }}
+    >
       <div
         style={{
           opacity: rise,
           transform: `translateY(${interpolate(1 - rise, [0, 1], [0, 18])}px)`,
-          fontSize: 72,
+          fontSize: 76,
           lineHeight: 1.04,
-          fontWeight: 700,
+          fontWeight: 800,
           maxWidth: 1200,
+          letterSpacing: "-0.02em",
         }}
       >
         Stop guessing.
@@ -568,7 +728,7 @@ function CTAScene({ frame }: { frame: number }) {
           opacity: rise,
         }}
       >
-        React-native clickmaps with zero cloud requirement and full data ownership.
+        Privacy-first heatmaps with zero cloud requirement and full data ownership.
       </div>
 
       <SceneValueSubtitle
@@ -584,31 +744,62 @@ function CTAScene({ frame }: { frame: number }) {
           gap: 12,
           borderRadius: 14,
           border: "1px solid rgba(94,234,212,0.72)",
-          background: "linear-gradient(135deg, rgba(94,234,212,0.18), rgba(96,165,250,0.16))",
-          padding: "14px 22px",
-          fontSize: 31,
+          background: `linear-gradient(135deg, rgba(94,234,212,0.18), rgba(96,165,250,0.16))`,
+          backgroundSize: "200% 100%",
+          backgroundPosition: `${shimmer}% 0`,
+          padding: "16px 28px",
+          fontSize: 34,
           fontWeight: 700,
           fontFamily: MONO_STACK,
           opacity: rise,
+          alignSelf: "flex-start",
         }}
       >
-        npm install react-clickmap
+        <span style={{ color: BRAND.primary }}>$</span> npm install react-clickmap
+      </div>
+
+      <div
+        style={{
+          marginTop: 20,
+          opacity: rise,
+          display: "flex",
+          gap: 14,
+        }}
+      >
+        {["Open Source", "MIT License", "< 13 KB gzipped"].map((tag) => (
+          <div
+            key={tag}
+            style={{
+              borderRadius: 999,
+              border: "1px solid rgba(148,194,255,0.35)",
+              padding: "8px 16px",
+              color: "#c5dbff",
+              fontSize: 20,
+              fontWeight: 500,
+            }}
+          >
+            {tag}
+          </div>
+        ))}
       </div>
     </AbsoluteFill>
   );
 }
 
-const SCENE_TRANSITION_FRAMES = 14;
-const EXTRA_SCENE_FRAMES = 60;
-const BASE_RESULT_DURATION = 114;
-const BASE_MODE_DURATION = 96;
-const BASE_ROUTE_DURATION = 102;
-const BASE_CTA_DURATION = 78;
+const SCENE_TRANSITION_FRAMES = 11;
+const EXTRA_SCENE_FRAMES = 45;
+const BASE_TITLE_DURATION = 68;
+const BASE_RESULT_DURATION = 86;
+const BASE_MODE_DURATION = 72;
+const BASE_ROUTE_DURATION = 77;
+const BASE_CTA_DURATION = 59;
+const TITLE_DURATION = BASE_TITLE_DURATION + EXTRA_SCENE_FRAMES;
 const RESULT_DURATION = BASE_RESULT_DURATION + EXTRA_SCENE_FRAMES;
 const MODE_DURATION = BASE_MODE_DURATION + EXTRA_SCENE_FRAMES;
 const ROUTE_DURATION = BASE_ROUTE_DURATION + EXTRA_SCENE_FRAMES;
 const CTA_DURATION = BASE_CTA_DURATION + EXTRA_SCENE_FRAMES;
-const RESULT_START = 0;
+const TITLE_START = 0;
+const RESULT_START = TITLE_START + TITLE_DURATION;
 const MODE_START = RESULT_START + RESULT_DURATION;
 const ROUTE_START = MODE_START + MODE_DURATION;
 const CTA_START = ROUTE_START + ROUTE_DURATION;
@@ -684,9 +875,18 @@ export const LaunchVideo = () => {
       />
       <Background frame={frame} />
 
-      <Sequence from={RESULT_START} durationInFrames={MODE_START - RESULT_START}>
+      <Sequence from={TITLE_START} durationInFrames={RESULT_START - TITLE_START}>
+        <AbsoluteFill style={getSceneTransitionStyle({ frame, start: TITLE_START, nextStart: RESULT_START })}>
+          <TitleScene frame={frame} />
+        </AbsoluteFill>
+      </Sequence>
+
+      <Sequence
+        from={RESULT_START - SCENE_TRANSITION_FRAMES}
+        durationInFrames={MODE_START - (RESULT_START - SCENE_TRANSITION_FRAMES)}
+      >
         <AbsoluteFill style={getSceneTransitionStyle({ frame, start: RESULT_START, nextStart: MODE_START })}>
-          <ResultFirstScene frame={frame} />
+          <ResultFirstScene frame={frame - RESULT_START} />
         </AbsoluteFill>
       </Sequence>
 

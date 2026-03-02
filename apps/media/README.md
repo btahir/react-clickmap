@@ -10,6 +10,7 @@ Running the render scripts writes media directly to the root `assets/` folder:
 - `assets/readme-hero-poster.png`
 - `assets/launch-video.mp4`
 - `assets/launch-thumbnail.png`
+- `assets/feature-showcase.png`
 
 ## Commands
 
@@ -25,6 +26,7 @@ pnpm --filter @react-clickmap/media run render:hero:gif
 pnpm --filter @react-clickmap/media run render:hero:poster
 pnpm --filter @react-clickmap/media run render:launch
 pnpm --filter @react-clickmap/media run render:launch:thumb
+pnpm --filter @react-clickmap/media run render:feature
 ```
 
 ## Brand system
