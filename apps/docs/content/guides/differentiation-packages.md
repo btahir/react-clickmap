@@ -49,7 +49,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 }
 ```
 
-See the full [Next.js App Router guide](nextjs-app-router.md) for detailed setup instructions.
+See the full [Next.js App Router guide](/docs/guides/nextjs-app-router) for detailed setup instructions.
 
 ## `react-clickmap-postgres`
 
@@ -73,7 +73,7 @@ npm install react-clickmap-postgres
 - **Custom table name** — Validated against `[a-zA-Z_][a-zA-Z0-9_]*` for safety
 - **Works with any Postgres client** — Accepts any object with `query(text, params)` (pg, postgres.js, Drizzle, etc.)
 
-See the [Persistence Guide](persistence.md) for the full SQL schema and client-specific setup.
+See the [Persistence Guide](/docs/guides/persistence) for the full SQL schema and client-specific setup.
 
 ## `react-clickmap-supabase`
 

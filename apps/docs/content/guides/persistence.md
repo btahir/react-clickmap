@@ -281,7 +281,7 @@ function App() {
 }
 ```
 
-**For Next.js, skip the Express boilerplate** — use `@react-clickmap/next` which gives you pre-built route handlers. See the [Next.js guide](nextjs-app-router.md).
+**For Next.js, skip the Express boilerplate** — use `@react-clickmap/next` which gives you pre-built route handlers. See the [Next.js guide](/docs/guides/nextjs-app-router).
 
 ### Idempotency
 

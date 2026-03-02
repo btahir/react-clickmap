@@ -166,7 +166,7 @@ const adapter = createPostgresAdapter({
 
 Uses `ON CONFLICT (event_id) DO NOTHING` for idempotent inserts. Supports server-side coordinate binning via `loadAggregated()`.
 
-See the [Persistence Guide](../guides/persistence.md) for the full SQL schema and setup instructions.
+See the [Persistence Guide](/docs/guides/persistence) for the full SQL schema and setup instructions.
 
 ### `createSupabaseAdapter(options)` — `react-clickmap-supabase`
 
@@ -203,7 +203,7 @@ const adapter = createNextFetchAdapter({
 });
 ```
 
-Convenience wrapper around `fetchAdapter` with Next.js defaults. See the [Next.js guide](../guides/nextjs-app-router.md) for usage with `createClickmapRouteHandlers`.
+Convenience wrapper around `fetchAdapter` with Next.js defaults. See the [Next.js guide](/docs/guides/nextjs-app-router) for usage with `createClickmapRouteHandlers`.
 
 ## `useHeatmapData` hook
 

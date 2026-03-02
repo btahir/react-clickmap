@@ -94,12 +94,12 @@ react-clickmap is storage-agnostic. Pick the adapter that matches your stack:
 | `createPostgresAdapter()` | `npm install react-clickmap-postgres` | Direct Postgres persistence with parameterized queries |
 | `createSupabaseAdapter()` | `npm install react-clickmap-supabase` | Supabase REST API — no backend code needed |
 
-See the [Persistence Guide](guides/persistence.md) for detailed setup instructions with each adapter.
+See the [Persistence Guide](/docs/guides/persistence) for detailed setup instructions with each adapter.
 
 ## Next steps
 
-- [Persistence Guide](guides/persistence.md) — Hook up a database (Postgres, Supabase, or custom)
-- [Next.js App Router](guides/nextjs-app-router.md) — Set up with the App Router
-- [Privacy & Consent](guides/privacy-consent.md) — Configure consent flows and data minimization
-- [Components API](api/components.md) — Full prop reference for all components
-- [Architecture](architecture.md) — How the capture and render pipelines work
+- [Persistence Guide](/docs/guides/persistence) — Hook up a database (Postgres, Supabase, or custom)
+- [Next.js App Router](/docs/guides/nextjs-app-router) — Set up with the App Router
+- [Privacy & Consent](/docs/guides/privacy-consent) — Configure consent flows and data minimization
+- [Components API](/docs/api/components) — Full prop reference for all components
+- [Architecture](/docs/architecture) — How the capture and render pipelines work

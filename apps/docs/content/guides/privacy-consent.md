@@ -122,7 +122,7 @@ Clicks on ignored elements produce no events at all.
 1. **Enable selector masking** for form inputs, password fields, and PII-related elements
 2. **Avoid passing PII** as `userId` — use an opaque identifier instead
 3. **Scope by `projectId`** to keep data separated across apps or environments
-4. **Set data retention** at the database layer — see the [Persistence Guide](persistence.md) for retention recommendations
+4. **Set data retention** at the database layer — see the [Persistence Guide](/docs/guides/persistence) for retention recommendations
 5. **Implement `deleteEvents`** in your adapter for GDPR right-to-erasure requests
 
 ## GDPR / CCPA compliance checklist
