@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { extractToc, renderMarkdown } from "../../../components/markdown-renderer";
@@ -35,6 +36,33 @@ function toDocsHref(slug: string[]): string {
 export async function generateStaticParams() {
   const docs = await getAllDocs();
   return docs.map((doc) => ({ slug: doc.slug }));
+}
+
+export async function generateMetadata({ params }: DocsPageProps): Promise<Metadata> {
+  const resolved = await params;
+  const slug = resolved.slug ?? [];
+
+  if (slug.length === 0) {
+    return {
+      title: "Documentation",
+      description:
+        "Browse guides, API references, and practical examples for integrating react-clickmap into your React app.",
+    };
+  }
+
+  const doc = await getDocBySlug(slug);
+  if (!doc) {
+    return {};
+  }
+
+  return {
+    title: doc.title,
+    description: doc.description,
+    openGraph: {
+      title: `${doc.title} | react-clickmap`,
+      description: doc.description,
+    },
+  };
 }
 
 export default async function DocsPage({ params }: DocsPageProps) {
