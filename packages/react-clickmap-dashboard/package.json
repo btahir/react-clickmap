@@ -36,14 +36,15 @@
     "build": "tsup",
     "check": "biome check src tsup.config.ts README.md",
     "check:fix": "biome check --write src tsup.config.ts README.md",
-    "test": "echo 'no tests yet'",
-    "test:run": "echo 'no tests yet'"
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "devDependencies": {
     "@types/react": "^19.2.14",
     "biome": "npm:@biomejs/biome@^2.4.4",
     "react": "^19.2.4",
     "tsup": "^8.5.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^4.0.7"
   }
 }

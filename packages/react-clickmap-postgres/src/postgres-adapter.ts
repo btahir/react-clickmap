@@ -172,10 +172,7 @@ function mapRowToEvent(row: PostgresEventRow): CaptureEvent {
         y: row.y_pct ?? 0,
         ...withSelector,
         pointerType: normalizePointerType(row.pointer_type),
-        reason:
-          payload.reason === "non-interactive-target"
-            ? "non-interactive-target"
-            : "non-interactive-target",
+        reason: "non-interactive-target",
       };
     default:
       return {

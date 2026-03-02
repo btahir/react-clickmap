@@ -188,11 +188,11 @@ function appendFilters(searchParams: URLSearchParams, query: HeatmapQuery): void
   }
 
   if (typeof query.from === "number") {
-    searchParams.set("occurred_at", `gte.${new Date(query.from).toISOString()}`);
+    searchParams.append("occurred_at", `gte.${new Date(query.from).toISOString()}`);
   }
 
   if (typeof query.to === "number") {
-    searchParams.set("occurred_at", `lte.${new Date(query.to).toISOString()}`);
+    searchParams.append("occurred_at", `lte.${new Date(query.to).toISOString()}`);
   }
 }
 
