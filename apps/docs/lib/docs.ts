@@ -101,13 +101,16 @@ export async function getAllDocs(): Promise<DocEntry[]> {
     const body = await fs.readFile(markdownFile.filePath, "utf8");
     const slugPath = markdownFile.slug.join("/");
 
+    // Strip the leading h1 from the body (it's rendered separately in the page header)
+    const strippedBody = body.replace(/^#\s+.+\r?\n/, "");
+
     docs.push({
       slug: markdownFile.slug,
       slugPath,
       section: toSection(markdownFile.slug),
       title: extractTitle(body, markdownFile.slug),
       description: extractDescription(body),
-      body,
+      body: strippedBody,
     });
   }
 
@@ -121,14 +124,33 @@ export async function getDocBySlug(slug: string[]): Promise<DocEntry | undefined
   return docs.find((doc) => doc.slugPath === expected);
 }
 
+const SECTION_ORDER = ["overview", "guides", "api", "examples"];
+
 export function groupDocsBySection(docs: DocEntry[]): Map<string, DocEntry[]> {
-  const grouped = new Map<string, DocEntry[]>();
+  const buckets = new Map<string, DocEntry[]>();
 
   for (const doc of docs) {
-    const existing = grouped.get(doc.section) ?? [];
+    const existing = buckets.get(doc.section) ?? [];
     existing.push(doc);
-    grouped.set(doc.section, existing);
+    buckets.set(doc.section, existing);
   }
 
-  return grouped;
+  // Return sections in a stable, logical order
+  const ordered = new Map<string, DocEntry[]>();
+
+  for (const section of SECTION_ORDER) {
+    const entries = buckets.get(section);
+    if (entries) {
+      ordered.set(section, entries);
+    }
+  }
+
+  // Append any unexpected sections at the end
+  for (const [section, entries] of buckets) {
+    if (!ordered.has(section)) {
+      ordered.set(section, entries);
+    }
+  }
+
+  return ordered;
 }
