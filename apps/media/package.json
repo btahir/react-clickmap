@@ -18,7 +18,7 @@
     "render:all": "pnpm run render:hero:gif && pnpm run render:hero:poster && pnpm run render:launch && pnpm run render:launch:thumb && pnpm run render:feature"
   },
   "dependencies": {
-    "@remotion/media": "^4.0.431",
+    "@remotion/media": "^4.0.434",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "remotion": "^4.0.431"
