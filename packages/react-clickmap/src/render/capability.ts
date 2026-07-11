@@ -1,9 +1,4 @@
-export type RenderCapabilityTier = "tier-1" | "tier-2" | "tier-3";
-
 export interface RenderCapability {
-  tier: RenderCapabilityTier;
-  offscreenCanvas: boolean;
-  worker: boolean;
   webgl2: boolean;
   webgl1: boolean;
 }
@@ -26,37 +21,15 @@ function supportsWebGL1(): boolean {
   return canvas.getContext("webgl") !== null;
 }
 
+/**
+ * Reports whether WebGL2/WebGL1 rendering contexts are available. This is
+ * the only capability signal `createRenderer` actually acts on -- it picks
+ * WebGL when available and falls back to Canvas2D otherwise (`WebGLRenderer`
+ * itself further prefers WebGL2 over WebGL1 internally).
+ */
 export function detectRenderCapability(): RenderCapability {
-  const offscreenCanvas = typeof OffscreenCanvas !== "undefined";
-  const worker = typeof Worker !== "undefined";
-  const webgl2 = supportsWebGL2();
-  const webgl1 = supportsWebGL1();
-
-  if (offscreenCanvas && worker && webgl2) {
-    return {
-      tier: "tier-1",
-      offscreenCanvas,
-      worker,
-      webgl2,
-      webgl1,
-    };
-  }
-
-  if (offscreenCanvas && worker && webgl1) {
-    return {
-      tier: "tier-2",
-      offscreenCanvas,
-      worker,
-      webgl2,
-      webgl1,
-    };
-  }
-
   return {
-    tier: "tier-3",
-    offscreenCanvas,
-    worker,
-    webgl2,
-    webgl1,
+    webgl2: supportsWebGL2(),
+    webgl1: supportsWebGL1(),
   };
 }

@@ -1,5 +1,6 @@
 import { fromViewportPercentages } from "../utils/coordinates";
-import type { Renderer, RenderOptions, RenderPoint } from "./types";
+import { buildGradientPalette, normalizeGradientStops } from "./gradient";
+import type { GradientMap, Renderer, RenderOptions, RenderPoint } from "./types";
 
 const VERTEX_SHADER = `
 attribute vec2 a_position;
@@ -22,19 +23,24 @@ const FRAGMENT_SHADER = `
 precision mediump float;
 varying float v_weight;
 uniform float u_opacity;
+uniform sampler2D u_gradient;
 
 void main() {
   vec2 center = gl_PointCoord - vec2(0.5, 0.5);
   float distance = length(center);
   float falloff = smoothstep(0.5, 0.0, distance);
 
-  vec3 low = vec3(0.0, 0.2, 1.0);
-  vec3 high = vec3(1.0, 0.0, 0.0);
-  vec3 color = mix(low, high, clamp(v_weight, 0.0, 1.0));
+  vec3 color = texture2D(u_gradient, vec2(clamp(v_weight, 0.0, 1.0), 0.5)).rgb;
 
   gl_FragColor = vec4(color, falloff * u_opacity * max(0.15, v_weight));
 }
 `;
+
+function gradientCacheKey(gradient: GradientMap): string {
+  return normalizeGradientStops(gradient)
+    .map(([stop, color]) => `${stop}:${color}`)
+    .join("|");
+}
 
 function compileShader(gl: WebGLRenderingContext, type: number, source: string): WebGLShader {
   const shader = gl.createShader(type);
@@ -97,12 +103,17 @@ export class WebGLRenderer implements Renderer {
   private resolutionUniform: WebGLUniformLocation | undefined;
   private pointSizeUniform: WebGLUniformLocation | undefined;
   private opacityUniform: WebGLUniformLocation | undefined;
+  private gradientUniform: WebGLUniformLocation | undefined;
+  private gradientTexture: WebGLTexture | undefined;
+  private gradientCacheKeyValue: string | undefined;
 
   private isContextLost = false;
 
   constructor(canvas: HTMLCanvasElement) {
+    const contextOptions: WebGLContextAttributes = { preserveDrawingBuffer: true };
     const context =
-      (canvas.getContext("webgl2") as WebGLRenderingContext | null) ?? canvas.getContext("webgl");
+      (canvas.getContext("webgl2", contextOptions) as WebGLRenderingContext | null) ??
+      canvas.getContext("webgl", contextOptions);
 
     if (!context) {
       throw new Error("react-clickmap: WebGL is unavailable in this browser context");
@@ -152,10 +163,14 @@ export class WebGLRenderer implements Renderer {
       !this.weightBuffer ||
       !this.resolutionUniform ||
       !this.pointSizeUniform ||
-      !this.opacityUniform
+      !this.opacityUniform ||
+      !this.gradientUniform ||
+      !this.gradientTexture
     ) {
       return;
     }
+
+    this.updateGradientTexture(options.gradient);
 
     const positions = new Float32Array(points.length * 2);
     const weights = new Float32Array(points.length);
@@ -193,7 +208,40 @@ export class WebGLRenderer implements Renderer {
     gl.uniform1f(this.pointSizeUniform, Math.max(2, options.radius * 1.6));
     gl.uniform1f(this.opacityUniform, options.opacity);
 
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.gradientTexture);
+    gl.uniform1i(this.gradientUniform, 0);
+
     gl.drawArrays(gl.POINTS, 0, points.length);
+  }
+
+  private updateGradientTexture(gradient: GradientMap): void {
+    if (!this.gradientTexture) {
+      return;
+    }
+
+    const cacheKey = gradientCacheKey(gradient);
+    if (cacheKey === this.gradientCacheKeyValue) {
+      return;
+    }
+
+    const palette = buildGradientPalette(gradient);
+    const gl = this.gl;
+
+    gl.bindTexture(gl.TEXTURE_2D, this.gradientTexture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      256,
+      1,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      new Uint8Array(palette.buffer, palette.byteOffset, palette.byteLength),
+    );
+
+    this.gradientCacheKeyValue = cacheKey;
   }
 
   dispose(): void {
@@ -233,13 +281,28 @@ export class WebGLRenderer implements Renderer {
     const resolutionUniform = this.gl.getUniformLocation(program, "u_resolution");
     const pointSizeUniform = this.gl.getUniformLocation(program, "u_pointSize");
     const opacityUniform = this.gl.getUniformLocation(program, "u_opacity");
+    const gradientUniform = this.gl.getUniformLocation(program, "u_gradient");
 
-    if (!resolutionUniform || !pointSizeUniform || !opacityUniform) {
+    if (!resolutionUniform || !pointSizeUniform || !opacityUniform || !gradientUniform) {
       this.gl.deleteBuffer(positionBuffer);
       this.gl.deleteBuffer(weightBuffer);
       this.gl.deleteProgram(program);
       throw new Error("react-clickmap: Missing required WebGL uniforms");
     }
+
+    const gradientTexture = this.gl.createTexture();
+    if (!gradientTexture) {
+      this.gl.deleteBuffer(positionBuffer);
+      this.gl.deleteBuffer(weightBuffer);
+      this.gl.deleteProgram(program);
+      throw new Error("react-clickmap: Unable to create WebGL gradient texture");
+    }
+
+    this.gl.bindTexture(this.gl.TEXTURE_2D, gradientTexture);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
 
     this.program = program;
     this.positionBuffer = positionBuffer;
@@ -249,6 +312,9 @@ export class WebGLRenderer implements Renderer {
     this.resolutionUniform = resolutionUniform;
     this.pointSizeUniform = pointSizeUniform;
     this.opacityUniform = opacityUniform;
+    this.gradientUniform = gradientUniform;
+    this.gradientTexture = gradientTexture;
+    this.gradientCacheKeyValue = undefined;
   }
 
   private disposeResources(): void {
@@ -262,6 +328,11 @@ export class WebGLRenderer implements Renderer {
       this.weightBuffer = undefined;
     }
 
+    if (this.gradientTexture) {
+      this.gl.deleteTexture(this.gradientTexture);
+      this.gradientTexture = undefined;
+    }
+
     if (this.program) {
       this.gl.deleteProgram(this.program);
       this.program = undefined;
@@ -270,6 +341,8 @@ export class WebGLRenderer implements Renderer {
     this.resolutionUniform = undefined;
     this.pointSizeUniform = undefined;
     this.opacityUniform = undefined;
+    this.gradientUniform = undefined;
+    this.gradientCacheKeyValue = undefined;
     this.positionAttribute = -1;
     this.weightAttribute = -1;
   }

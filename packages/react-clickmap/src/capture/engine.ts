@@ -96,7 +96,11 @@ export function createCaptureEngine(options: CaptureEngineOptions): CaptureEngin
       }),
     );
 
-    if (enabledCapture.has("click") || enabledCapture.has("rage-click")) {
+    if (
+      enabledCapture.has("click") ||
+      enabledCapture.has("rage-click") ||
+      enabledCapture.has("dead-click")
+    ) {
       cleanupCallbacks.push(
         createClickTracker({
           projectId: options.projectId,
@@ -106,6 +110,7 @@ export function createCaptureEngine(options: CaptureEngineOptions): CaptureEngin
           getPathname: getCurrentPathname,
           getRouteKey: getCurrentRouteKey,
           emit: emitCaptured,
+          enableClicks: enabledCapture.has("click"),
           enableDeadClicks: enabledCapture.has("dead-click"),
           enableRageClicks: enabledCapture.has("rage-click"),
           ignoreSelectors: options.ignoreSelectors,

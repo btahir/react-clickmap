@@ -26,6 +26,7 @@ export interface ClickTrackerOptions {
   emit: (event: CaptureEvent) => void;
   ignoreSelectors?: string[];
   maskSelectors?: string[];
+  enableClicks?: boolean;
   enableDeadClicks?: boolean;
   enableRageClicks?: boolean;
   rageClickThreshold?: number;
@@ -64,6 +65,7 @@ function isInteractiveElement(element: Element): boolean {
 export function createClickTracker(options: ClickTrackerOptions): () => void {
   const ignoreSelectors = options.ignoreSelectors ?? [];
   const maskSelectors = options.maskSelectors ?? [];
+  const enableClicks = options.enableClicks ?? true;
   const rageClickThreshold = options.rageClickThreshold ?? 3;
   const rageClickWindowMs = options.rageClickWindowMs ?? 500;
   const rageClickRadiusPx = options.rageClickRadiusPx ?? 30;
@@ -109,7 +111,9 @@ export function createClickTracker(options: ClickTrackerOptions): () => void {
       selector,
     };
 
-    options.emit(clickEvent);
+    if (enableClicks) {
+      options.emit(clickEvent);
+    }
 
     if (options.enableDeadClicks && targetElement && !isInteractiveElement(targetElement)) {
       const deadClickEvent: DeadClickEvent = {

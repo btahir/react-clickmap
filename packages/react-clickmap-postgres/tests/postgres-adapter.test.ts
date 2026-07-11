@@ -49,6 +49,71 @@ describe("createPostgresAdapter", () => {
     expect(sql.calls[0]!.params![0]).toBe("evt-001");
   });
 
+  it("batches multiple events into a single multi-row INSERT", async () => {
+    const sql = createMockSql();
+    const adapter = createPostgresAdapter({ sql });
+    const events = [
+      mockEvent({ eventId: "evt-001" }),
+      mockEvent({ eventId: "evt-002" }),
+      mockEvent({ eventId: "evt-003" }),
+    ];
+
+    await adapter.save(events);
+
+    // A batch that fits in one statement doesn't need an explicit
+    // transaction -- the single INSERT is already atomic.
+    expect(sql.calls).toHaveLength(1);
+    expect(sql.calls[0]!.text).toContain("INSERT INTO clickmap_events");
+    expect(sql.calls[0]!.text).toContain("ON CONFLICT (event_id) DO NOTHING");
+    expect(sql.calls[0]!.params).toHaveLength(23 * 3);
+    expect(sql.calls[0]!.params![0]).toBe("evt-001");
+    expect(sql.calls[0]!.params![23]).toBe("evt-002");
+    expect(sql.calls[0]!.params![46]).toBe("evt-003");
+  });
+
+  it("wraps large batches in an explicit transaction across multiple INSERT statements", async () => {
+    const sql = createMockSql();
+    const adapter = createPostgresAdapter({ sql });
+    const events = Array.from({ length: 501 }, (_, index) =>
+      mockEvent({ eventId: `evt-${index}` }),
+    );
+
+    await adapter.save(events);
+
+    expect(sql.calls).toHaveLength(4);
+    expect(sql.calls[0]!.text).toBe("BEGIN");
+    expect(sql.calls[1]!.text).toContain("INSERT INTO clickmap_events");
+    expect(sql.calls[1]!.params).toHaveLength(23 * 500);
+    expect(sql.calls[2]!.text).toContain("INSERT INTO clickmap_events");
+    expect(sql.calls[2]!.params).toHaveLength(23 * 1);
+    expect(sql.calls[3]!.text).toBe("COMMIT");
+  });
+
+  it("rolls back the transaction if a chunked insert fails", async () => {
+    const calls: Array<{ text: string; params?: readonly unknown[] }> = [];
+    const sql: SqlExecutor = {
+      async query<Row = unknown>(
+        text: string,
+        params?: readonly unknown[],
+      ): Promise<SqlQueryResult<Row>> {
+        calls.push({ text, params });
+        if (text.startsWith("\n        INSERT") && calls.length === 2) {
+          throw new Error("boom");
+        }
+        return { rows: [] as Row[], rowCount: 0 };
+      },
+    };
+    const adapter = createPostgresAdapter({ sql });
+    const events = Array.from({ length: 501 }, (_, index) =>
+      mockEvent({ eventId: `evt-${index}` }),
+    );
+
+    await expect(adapter.save(events)).rejects.toThrow("boom");
+
+    expect(calls.map((call) => call.text.trim().split("\n")[0])).toContain("BEGIN");
+    expect(calls[calls.length - 1]!.text).toBe("ROLLBACK");
+  });
+
   it("skips save for empty event array", async () => {
     const sql = createMockSql();
     const adapter = createPostgresAdapter({ sql });

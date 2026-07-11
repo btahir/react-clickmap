@@ -30,34 +30,34 @@ Horizontal depth bands showing how far users scroll. The top of the page is hot 
 <Heatmap adapter={adapter} page="/pricing" type="scrollmap" />
 ```
 
-## Rendering engine tiers
+## Renderer fallback
 
-react-clickmap uses a 3-tier capability detection system that automatically selects the best available renderer:
+react-clickmap automatically selects the best available renderer for the overlay `<canvas>`:
 
-| Tier | Engine | Detection | Performance |
-|---|---|---|---|
-| Tier 1 | WebGL 2 | `canvas.getContext("webgl2")` succeeds | Best — GPU-accelerated |
-| Tier 2 | WebGL 1 | `canvas.getContext("webgl")` succeeds | Good — GPU-accelerated |
-| Tier 3 | Canvas 2D | Always available | Adequate — CPU-rendered |
+| Engine | Detection | Performance |
+|---|---|---|
+| WebGL 2 | `canvas.getContext("webgl2")` succeeds | Best — GPU-accelerated |
+| WebGL 1 | `canvas.getContext("webgl")` succeeds | Good — GPU-accelerated |
+| Canvas 2D | Always available | Adequate — CPU-rendered |
 
-You don't need to configure this — it's automatic. The `detectRenderCapability()` function is exported if you want to check:
+You don't need to configure this — it's automatic. `WebGLRenderer` tries WebGL2 first, falls back to WebGL1, and `createRenderer` falls back to `CanvasRenderer` entirely if no WebGL context can be created. The `detectRenderCapability()` function is exported if you want to check what's available in the current environment:
 
 ```ts
 import { detectRenderCapability } from "react-clickmap";
 
 const cap = detectRenderCapability();
-console.log(cap.tier);   // "tier-1" | "tier-2" | "tier-3"
-console.log(cap.engine); // "webgl2" | "webgl" | "canvas2d"
+console.log(cap.webgl2); // boolean
+console.log(cap.webgl1); // boolean
 ```
 
 ## WebGL rendering details
 
 The WebGL renderer works by:
 
-1. Drawing each point as a radial gradient circle on an offscreen framebuffer
+1. Drawing each point as a radial gradient circle directly onto the overlay canvas
 2. Blending points additively (overlapping areas accumulate intensity)
-3. Applying a color gradient palette as a post-processing step
-4. Compositing the result onto the visible canvas
+3. Sampling a gradient palette texture (matching your `gradient` prop) in the fragment shader to colorize each point
+4. Preserving the drawing buffer so `toDataUrl()`/`toBlob()`/`download()` can read back a rendered frame
 
 ### Context loss handling
 

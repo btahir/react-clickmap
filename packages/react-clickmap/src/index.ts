@@ -12,7 +12,7 @@ export { HeatmapThumbnail } from "./heatmap-thumbnail";
 export { ClickmapProvider } from "./provider";
 export { DEFAULT_GRADIENT, detectRenderCapability } from "./render";
 export { toAttentionRenderPoints } from "./render/attention";
-export type { RenderCapability, RenderCapabilityTier } from "./render/capability";
+export type { RenderCapability } from "./render/capability";
 export type { ElementClickSummary } from "./render/element-clicks";
 export { aggregateElementClicks } from "./render/element-clicks";
 export type { GradientMap, HeatmapRenderMode, RenderPoint } from "./render/types";

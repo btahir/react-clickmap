@@ -12,4 +12,13 @@ export default defineConfig({
   treeshake: true,
   target: "es2022",
   external: ["react", "react-dom"],
+  // Every export in this package is a client component/hook, so the built
+  // entry needs a "use client" directive. esbuild strips module-level
+  // directives from bundled output (both a plain `banner` and an
+  // onEnd-based esbuild plugin like esbuild-plugin-preserve-directives get
+  // silently dropped again somewhere in tsup's own post-processing --
+  // verified empirically against this exact build). Prepending it to the
+  // written file (and shifting the sourcemap to match) after tsup finishes
+  // is the reliable fix; see scripts/prepend-use-client.mjs.
+  onSuccess: "node ./scripts/prepend-use-client.mjs",
 });

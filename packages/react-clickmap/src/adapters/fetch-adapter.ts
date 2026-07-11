@@ -4,6 +4,13 @@ export interface FetchAdapterOptions {
   endpoint: string;
   loadEndpoint?: string;
   deleteEndpoint?: string;
+  /**
+   * Extra headers to send with every request (e.g. an Authorization bearer
+   * token). Note: `navigator.sendBeacon` cannot carry custom headers, so
+   * whenever `headers` is set, `save()` always uses
+   * `fetch(..., { keepalive: true })` instead of the beacon API -- even if
+   * `preferBeacon` is true -- to avoid silently dropping them.
+   */
   headers?: HeadersInit;
   fetchImpl?: typeof fetch;
   preferBeacon?: boolean;
@@ -81,13 +88,19 @@ export function fetchAdapter(options: FetchAdapterOptions): ClickmapAdapter {
       }
 
       const chunks = splitBySize(events, maxPayloadBytes);
+      // navigator.sendBeacon has no way to attach custom headers (e.g. an
+      // Authorization bearer token), so silently using it when the caller
+      // configured headers would drop them on the floor. Fall back to
+      // fetch(..., { keepalive: true }) instead, which still survives page
+      // unload in modern browsers and does carry the configured headers.
+      const canUseBeacon = preferBeacon && !options.headers;
 
       for (const chunk of chunks) {
         const payload = JSON.stringify({ events: chunk });
         const payloadSize = new Blob([payload]).size;
 
         if (
-          preferBeacon &&
+          canUseBeacon &&
           typeof navigator !== "undefined" &&
           typeof navigator.sendBeacon === "function" &&
           payloadSize <= maxPayloadBytes

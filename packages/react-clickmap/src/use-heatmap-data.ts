@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CaptureEvent, ClickmapAdapter, HeatmapQuery } from "./types";
 
 export interface UseHeatmapDataResult {
@@ -8,6 +8,14 @@ export interface UseHeatmapDataResult {
   isLoading: boolean;
   error: Error | null;
   reload: () => Promise<void>;
+}
+
+function serializeQuery(query: HeatmapQuery): string {
+  const entries = Object.entries(query)
+    .filter(([, value]) => value !== undefined)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+
+  return JSON.stringify(entries);
 }
 
 export function useHeatmapData(
@@ -19,6 +27,15 @@ export function useHeatmapData(
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
+  // Inline query object literals get a new identity on every render. Reading
+  // the latest query through a ref -- while keying `reload`'s memoization off
+  // a content-based serialization -- prevents an infinite refetch loop when
+  // callers pass a non-memoized query object.
+  const queryRef = useRef(query);
+  queryRef.current = query;
+  const queryKey = useMemo(() => serializeQuery(query), [query]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: queryKey (a content-based serialization of `query`) is the intentional dependency in place of `query`'s identity -- see queryRef above.
   const reload = useCallback(async (): Promise<void> => {
     if (!enabled) {
       setData([]);
@@ -29,7 +46,7 @@ export function useHeatmapData(
     setError(null);
 
     try {
-      const events = await adapter.load(query);
+      const events = await adapter.load(queryRef.current);
       setData(events);
     } catch (caught) {
       const normalized =
@@ -38,7 +55,7 @@ export function useHeatmapData(
     } finally {
       setIsLoading(false);
     }
-  }, [adapter, enabled, query]);
+  }, [adapter, enabled, queryKey]);
 
   useEffect(() => {
     void reload();

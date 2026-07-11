@@ -112,9 +112,8 @@ That's it. Events are captured, batched, and persisted through your adapter. Ren
 
 ### Rendering Engine
 
-- **WebGL-first** with automatic Canvas fallback
-- 3-tier capability detection (WebGL2 > WebGL1 > Canvas2D)
-- GPU-accelerated radial gradient blending
+- **WebGL-first** with automatic Canvas fallback (WebGL2 > WebGL1 > Canvas2D)
+- GPU-accelerated radial gradient blending, with your custom `gradient` palette honored on both the WebGL and Canvas renderers
 - Handles context loss/restore gracefully
 - Gradient palette memoization for consistent colors
 

@@ -21,6 +21,75 @@ function assertTableName(tableName: string): string {
   return tableName;
 }
 
+const INSERT_COLUMNS = [
+  "event_id",
+  "project_id",
+  "session_id",
+  "user_id",
+  "occurred_at",
+  "event_type",
+  "page_path",
+  "route_key",
+  "device_type",
+  "viewport_w",
+  "viewport_h",
+  "scroll_x",
+  "scroll_y",
+  "x_pct",
+  "y_pct",
+  "pointer_type",
+  "selector_masked_path",
+  "depth_pct",
+  "max_depth_pct",
+  "is_rage_click",
+  "is_dead_click",
+  "payload_jsonb",
+  "schema_version",
+] as const;
+
+const COLUMNS_PER_ROW = INSERT_COLUMNS.length;
+// Postgres has a hard limit of 65535 bound parameters per statement. 500
+// rows * 23 columns = 11,500 params, well under that limit while still
+// batching most real-world flush sizes into a single round trip.
+const MAX_INSERT_ROWS_PER_STATEMENT = 500;
+
+function buildInsertValuesSql(rowCount: number): string {
+  const rows: string[] = [];
+
+  for (let row = 0; row < rowCount; row += 1) {
+    const offset = row * COLUMNS_PER_ROW;
+    const placeholders: string[] = [];
+
+    for (let column = 0; column < COLUMNS_PER_ROW; column += 1) {
+      placeholders.push(`$${offset + column + 1}`);
+    }
+
+    rows.push(`(${placeholders.join(", ")})`);
+  }
+
+  return rows.join(",\n          ");
+}
+
+function buildBatchInsertQuery(tableName: string, rowCount: number): string {
+  return `
+        INSERT INTO ${tableName} (
+          ${INSERT_COLUMNS.join(",\n          ")}
+        ) VALUES
+          ${buildInsertValuesSql(rowCount)}
+        ON CONFLICT (event_id) DO NOTHING
+      `;
+}
+
+function chunkEvents(events: CaptureEvent[], size: number): CaptureEvent[][] {
+  const chunks: CaptureEvent[][] = [];
+
+  for (let index = 0; index < events.length; index += size) {
+    chunks.push(events.slice(index, index + size));
+  }
+
+  return chunks;
+}
+
 function buildWhereClause(query: HeatmapQuery, startParamIndex = 1): BuiltWhere {
   const params: unknown[] = [];
   const clauses: string[] = [];
@@ -247,43 +316,36 @@ export function createPostgresAdapter(options: PostgresAdapterOptions): Clickmap
         return;
       }
 
-      const query = `
-        INSERT INTO ${table} (
-          event_id,
-          project_id,
-          session_id,
-          user_id,
-          occurred_at,
-          event_type,
-          page_path,
-          route_key,
-          device_type,
-          viewport_w,
-          viewport_h,
-          scroll_x,
-          scroll_y,
-          x_pct,
-          y_pct,
-          pointer_type,
-          selector_masked_path,
-          depth_pct,
-          max_depth_pct,
-          is_rage_click,
-          is_dead_click,
-          payload_jsonb,
-          schema_version
-        ) VALUES (
-          $1, $2, $3, $4, $5,
-          $6, $7, $8, $9, $10,
-          $11, $12, $13, $14, $15,
-          $16, $17, $18, $19, $20,
-          $21, $22, $23
-        )
-        ON CONFLICT (event_id) DO NOTHING
-      `;
+      const chunks = chunkEvents(events, MAX_INSERT_ROWS_PER_STATEMENT);
+      // A single multi-row INSERT is already atomic in Postgres, so when
+      // everything fits in one statement there's no need for an explicit
+      // transaction. Only wrap in BEGIN/COMMIT when the batch has to be
+      // split across multiple statements, so the whole save() call is still
+      // all-or-nothing.
+      const useExplicitTransaction = chunks.length > 1;
 
-      for (const event of events) {
-        await options.sql.query(query, toInsertRecord(event));
+      if (useExplicitTransaction) {
+        await options.sql.query("BEGIN");
+      }
+
+      try {
+        for (const chunk of chunks) {
+          const query = buildBatchInsertQuery(table, chunk.length);
+          const params = chunk.flatMap((event) => toInsertRecord(event));
+          await options.sql.query(query, params);
+        }
+
+        if (useExplicitTransaction) {
+          await options.sql.query("COMMIT");
+        }
+      } catch (error) {
+        if (useExplicitTransaction) {
+          await options.sql.query("ROLLBACK").catch(() => {
+            // Best-effort rollback; surface the original error below.
+          });
+        }
+
+        throw error;
       }
     },
 

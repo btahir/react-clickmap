@@ -1,6 +1,7 @@
 import { fireEvent, render, waitFor } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { memoryAdapter } from "../src/adapters/memory-adapter";
+import * as engineModule from "../src/capture/engine";
 import { ClickmapProvider } from "../src/provider";
 import { useClickmap } from "../src/use-clickmap";
 
@@ -112,5 +113,42 @@ describe("ClickmapProvider", () => {
     await waitFor(() => {
       expect(adapter.inspect().length).toBeGreaterThan(0);
     });
+  });
+
+  it("does not rebuild the capture engine when array props are new-but-equal inline literals", async () => {
+    const adapter = memoryAdapter();
+    const createEngineSpy = vi.spyOn(engineModule, "createCaptureEngine");
+
+    function Wrapper() {
+      return (
+        <ClickmapProvider
+          adapter={adapter}
+          capture={["click", "scroll"]}
+          maskSelectors={["input"]}
+          ignoreSelectors={["[data-ignore]"]}
+          maxBatchSize={1}
+        >
+          <Probe />
+        </ClickmapProvider>
+      );
+    }
+
+    const { rerender } = render(<Wrapper />);
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-testid="state"]')?.textContent).toBe("on");
+    });
+
+    expect(createEngineSpy).toHaveBeenCalledTimes(1);
+
+    // Re-render several times with brand-new array instances that contain
+    // the same values. Prior to the fix, this rebuilt the engine every time.
+    rerender(<Wrapper />);
+    rerender(<Wrapper />);
+    rerender(<Wrapper />);
+
+    expect(createEngineSpy).toHaveBeenCalledTimes(1);
+
+    createEngineSpy.mockRestore();
   });
 });

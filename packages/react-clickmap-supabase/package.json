@@ -1,6 +1,6 @@
 {
   "name": "@react-clickmap/supabase",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Supabase persistence adapter for react-clickmap.",
   "license": "MIT",
   "type": "module",
@@ -11,7 +11,8 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -25,8 +26,13 @@
     "analytics",
     "self-hosted"
   ],
-  "dependencies": {
-    "react-clickmap": "workspace:*"
+  "peerDependencies": {
+    "react-clickmap": ">=0.2.0"
+  },
+  "peerDependenciesMeta": {
+    "react-clickmap": {
+      "optional": true
+    }
   },
   "scripts": {
     "build": "tsup",
@@ -37,6 +43,7 @@
   },
   "devDependencies": {
     "biome": "npm:@biomejs/biome@^2.4.4",
+    "react-clickmap": "workspace:*",
     "tsup": "^8.5.0",
     "typescript": "^5.9.2",
     "vitest": "^4.0.7"

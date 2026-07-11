@@ -1,6 +1,6 @@
 {
   "name": "@react-clickmap/dashboard",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Batteries-included dashboard components for react-clickmap.",
   "license": "MIT",
   "type": "module",
@@ -11,7 +11,8 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",

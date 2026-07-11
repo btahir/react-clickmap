@@ -66,6 +66,10 @@ function updateStoreCaptureState(store: ClickmapRuntimeStore, isCapturing: boole
   }));
 }
 
+function serializeStringArray(values: string[]): string {
+  return JSON.stringify(values);
+}
+
 export function ClickmapProvider({
   adapter,
   projectId = "default",
@@ -88,6 +92,22 @@ export function ClickmapProvider({
   const sessionId = useMemo(() => getOrCreateSessionId(), []);
   const storeRef = useRef<ClickmapRuntimeStore | undefined>(undefined);
   const engineRef = useRef<CaptureEngine | undefined>(undefined);
+
+  // Inline array literals (e.g. capture={["click"]}) get a new identity on
+  // every render. Reading the latest values through refs -- while keying the
+  // engine-recreation effect off serialized (content-based) strings -- keeps
+  // the effect from tearing down and rebuilding the capture engine on every
+  // render when callers pass non-memoized arrays.
+  const captureRef = useRef(capture);
+  captureRef.current = capture;
+  const maskSelectorsRef = useRef(maskSelectors);
+  maskSelectorsRef.current = maskSelectors;
+  const ignoreSelectorsRef = useRef(ignoreSelectors);
+  ignoreSelectorsRef.current = ignoreSelectors;
+
+  const captureKey = serializeStringArray(capture);
+  const maskSelectorsKey = serializeStringArray(maskSelectors);
+  const ignoreSelectorsKey = serializeStringArray(ignoreSelectors);
 
   if (!storeRef.current) {
     storeRef.current = createRuntimeStore({
@@ -114,10 +134,11 @@ export function ClickmapProvider({
     }));
   }, [store]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: captureKey/maskSelectorsKey/ignoreSelectorsKey (content-based serializations) are the intentional deps in place of the capture/maskSelectors/ignoreSelectors array identities -- the latest array values are read via refs above.
   useEffect(() => {
     const engine = createCaptureEngine({
       adapter,
-      capture,
+      capture: captureRef.current,
       projectId,
       sessionId,
       userId,
@@ -129,8 +150,8 @@ export function ClickmapProvider({
       hasConsent,
       respectDoNotTrack,
       respectGlobalPrivacyControl,
-      ignoreSelectors,
-      maskSelectors,
+      ignoreSelectors: ignoreSelectorsRef.current,
+      maskSelectors: maskSelectorsRef.current,
       onEventCaptured: () => {
         store.setState((current) => ({
           ...current,
@@ -156,13 +177,13 @@ export function ClickmapProvider({
     };
   }, [
     adapter,
-    capture,
+    captureKey,
     consentRequired,
     enabled,
     flushIntervalMs,
     hasConsent,
-    ignoreSelectors,
-    maskSelectors,
+    ignoreSelectorsKey,
+    maskSelectorsKey,
     maxBatchSize,
     projectId,
     respectDoNotTrack,

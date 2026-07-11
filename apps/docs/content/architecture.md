@@ -108,19 +108,20 @@ Events are converted to render points:
 
 ### 3. Rendering
 
-The render system uses a 3-tier capability detection:
+The render system falls back automatically from WebGL to Canvas2D:
 
-| Tier | Engine | When used |
-|---|---|---|
-| Tier 1 | WebGL 2 | Modern browsers (default) |
-| Tier 2 | WebGL 1 | Older browsers without WebGL 2 |
-| Tier 3 | Canvas 2D | Browsers without WebGL support |
+| Engine | When used |
+|---|---|
+| WebGL 2 | Modern browsers (default) |
+| WebGL 1 | Older browsers without WebGL 2 |
+| Canvas 2D | Browsers without WebGL support |
 
 **WebGL rendering:**
-- Each point is drawn as a radial gradient circle on an offscreen framebuffer
+- Each point is drawn as a radial gradient circle directly onto the overlay canvas
 - Points are blended additively to create heat accumulation
-- A color gradient palette is applied as a post-process step
+- A color gradient palette (matching the `gradient` prop) is sampled from a texture in the fragment shader
 - The gradient palette is memoized to avoid rebuilding on every render
+- The drawing buffer is preserved so exports (`toDataUrl`/`toBlob`/`download`) can read back a rendered frame
 
 **Resilience:**
 - Handles `webglcontextlost` / `webglcontextrestored` events gracefully

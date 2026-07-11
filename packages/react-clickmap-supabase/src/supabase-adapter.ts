@@ -196,6 +196,21 @@ function appendFilters(searchParams: URLSearchParams, query: HeatmapQuery): void
   }
 }
 
+// PostgREST (and most hosting providers fronting it) reject overly large
+// request bodies. Chunking keeps each POST well within typical limits and
+// avoids one oversized flush failing outright.
+const MAX_SAVE_BATCH_SIZE = 500;
+
+function chunkEvents(events: CaptureEvent[], size: number): CaptureEvent[][] {
+  const chunks: CaptureEvent[][] = [];
+
+  for (let index = 0; index < events.length; index += size) {
+    chunks.push(events.slice(index, index + size));
+  }
+
+  return chunks;
+}
+
 export function createSupabaseAdapter(options: SupabaseAdapterOptions): ClickmapAdapter {
   const baseUrl = trimTrailingSlash(options.url);
   const table = options.table ?? "clickmap_events";
@@ -204,7 +219,11 @@ export function createSupabaseAdapter(options: SupabaseAdapterOptions): Clickmap
 
   return {
     capabilities: {
-      supportsAggregation: true,
+      // loadAggregated() fetches raw rows and reduces them in JS -- it is
+      // not real server-side aggregation, so callers that branch on this
+      // flag (to decide whether it's safe to request aggregation for large
+      // datasets) should not be told the server does the heavy lifting.
+      supportsAggregation: false,
       supportsRetention: true,
       supportsIdempotency: true,
     },
@@ -214,17 +233,21 @@ export function createSupabaseAdapter(options: SupabaseAdapterOptions): Clickmap
         return;
       }
 
-      const response = await fetchImpl(`${baseUrl}/rest/v1/${table}`, {
-        method: "POST",
-        headers: {
-          ...headers,
-          Prefer: "resolution=ignore-duplicates",
-        },
-        body: JSON.stringify(events.map((event) => toRow(event))),
-      });
+      const chunks = chunkEvents(events, MAX_SAVE_BATCH_SIZE);
 
-      if (!response.ok) {
-        throw new Error(`Failed to save Supabase clickmap events. Status: ${response.status}`);
+      for (const chunk of chunks) {
+        const response = await fetchImpl(`${baseUrl}/rest/v1/${table}`, {
+          method: "POST",
+          headers: {
+            ...headers,
+            Prefer: "resolution=ignore-duplicates",
+          },
+          body: JSON.stringify(chunk.map((event) => toRow(event))),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to save Supabase clickmap events. Status: ${response.status}`);
+        }
       }
     },
 

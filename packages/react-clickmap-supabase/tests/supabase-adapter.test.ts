@@ -1,5 +1,26 @@
 import { describe, expect, it, vi } from "vitest";
+import type { CaptureEvent } from "react-clickmap";
 import { createSupabaseAdapter } from "../src/supabase-adapter";
+
+function buildEvent(overrides: Partial<CaptureEvent> = {}): CaptureEvent {
+  return {
+    schemaVersion: 1,
+    eventVersion: 1,
+    eventId: "evt-1",
+    projectId: "proj-1",
+    sessionId: "sess-1",
+    timestamp: 1700000000000,
+    pathname: "/home",
+    routeKey: "/home",
+    deviceType: "desktop",
+    viewport: { width: 1920, height: 1080, scrollX: 0, scrollY: 0 },
+    type: "click",
+    x: 50,
+    y: 25,
+    pointerType: "mouse",
+    ...overrides,
+  } as CaptureEvent;
+}
 
 function mockFetch(
   responseBody: unknown = [],
@@ -163,5 +184,37 @@ describe("createSupabaseAdapter", () => {
     const url = fetch.calls[0]!.url;
     // URLSearchParams encodes parens and commas
     expect(url).toContain("event_type=in.%28click%2Crage-click%29");
+  });
+
+  it("reports supportsAggregation: false since loadAggregated aggregates client-side", () => {
+    const adapter = createSupabaseAdapter(BASE_OPTIONS);
+
+    expect(adapter.capabilities.supportsAggregation).toBe(false);
+  });
+
+  it("chunks large save() payloads into batches of 500 events", async () => {
+    const fetch = mockFetch();
+    const adapter = createSupabaseAdapter({ ...BASE_OPTIONS, fetchImpl: fetch });
+
+    const events = Array.from({ length: 1201 }, (_, index) =>
+      buildEvent({ eventId: `evt-${index}` }),
+    );
+
+    await adapter.save(events);
+
+    expect(fetch.calls).toHaveLength(3);
+    const bodySizes = fetch.calls.map(
+      (call) => (JSON.parse(String(call.init?.body)) as unknown[]).length,
+    );
+    expect(bodySizes).toEqual([500, 500, 201]);
+  });
+
+  it("saves a single small batch in one request", async () => {
+    const fetch = mockFetch();
+    const adapter = createSupabaseAdapter({ ...BASE_OPTIONS, fetchImpl: fetch });
+
+    await adapter.save([buildEvent(), buildEvent({ eventId: "evt-2" })]);
+
+    expect(fetch.calls).toHaveLength(1);
   });
 });

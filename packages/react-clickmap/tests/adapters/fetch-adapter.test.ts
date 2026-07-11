@@ -24,6 +24,48 @@ describe("fetchAdapter", () => {
     expect(init?.keepalive).toBe(true);
   });
 
+  it("does not use sendBeacon (and thus does not drop custom headers) when headers are configured", async () => {
+    const sendBeacon = vi.fn(() => true);
+    vi.stubGlobal("navigator", { ...navigator, sendBeacon });
+
+    const fetchImpl = vi.fn(async () => new Response(null, { status: 200 }));
+    const adapter = fetchAdapter({
+      endpoint: "/api/clickmap",
+      fetchImpl,
+      headers: { authorization: "Bearer test-token" },
+      preferBeacon: true,
+    });
+
+    await adapter.save([createEvent()]);
+
+    expect(sendBeacon).not.toHaveBeenCalled();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const [, init] = fetchImpl.mock.calls[0] ?? [];
+    expect(init?.keepalive).toBe(true);
+    expect((init?.headers as Record<string, string>)?.authorization).toBe("Bearer test-token");
+
+    vi.unstubAllGlobals();
+  });
+
+  it("uses sendBeacon when preferBeacon is set and no custom headers are configured", async () => {
+    const sendBeacon = vi.fn(() => true);
+    vi.stubGlobal("navigator", { ...navigator, sendBeacon });
+
+    const fetchImpl = vi.fn(async () => new Response(null, { status: 200 }));
+    const adapter = fetchAdapter({
+      endpoint: "/api/clickmap",
+      fetchImpl,
+      preferBeacon: true,
+    });
+
+    await adapter.save([createEvent()]);
+
+    expect(sendBeacon).toHaveBeenCalledTimes(1);
+    expect(fetchImpl).not.toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+  });
+
   it("loads events from object payload", async () => {
     const fetchImpl = vi.fn(
       async () =>

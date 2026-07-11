@@ -26,4 +26,19 @@ CREATE TABLE IF NOT EXISTS clickmap_events (
   payload_jsonb JSONB NOT NULL DEFAULT '{}'::jsonb,
   schema_version INTEGER NOT NULL DEFAULT 1
 );
+
+CREATE INDEX IF NOT EXISTS clickmap_events_project_time_idx
+  ON clickmap_events (project_id, occurred_at DESC);
+
+CREATE INDEX IF NOT EXISTS clickmap_events_project_route_time_idx
+  ON clickmap_events (project_id, route_key, occurred_at DESC);
+
+CREATE INDEX IF NOT EXISTS clickmap_events_project_page_time_idx
+  ON clickmap_events (project_id, page_path, occurred_at DESC);
+
+CREATE INDEX IF NOT EXISTS clickmap_events_project_session_idx
+  ON clickmap_events (project_id, session_id);
+
+CREATE INDEX IF NOT EXISTS clickmap_events_project_user_idx
+  ON clickmap_events (project_id, user_id);
 `;
