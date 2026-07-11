@@ -1,5 +1,12 @@
 # @react-clickmap/cli
 
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [eea0827]
+  - react-clickmap@0.3.0
+
 ## 0.1.1
 
 ### Patch Changes

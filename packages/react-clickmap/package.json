@@ -1,6 +1,6 @@
 {
   "name": "react-clickmap",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Privacy-first heatmaps for React. Your data, your database, zero cloud.",
   "license": "MIT",
   "homepage": "https://github.com/btahir/react-clickmap#readme",

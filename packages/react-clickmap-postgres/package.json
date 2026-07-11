@@ -1,6 +1,6 @@
 {
   "name": "@react-clickmap/postgres",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Postgres persistence adapter and SQL schema for react-clickmap.",
   "license": "MIT",
   "type": "module",
@@ -33,7 +33,7 @@
     "self-hosted"
   ],
   "peerDependencies": {
-    "react-clickmap": ">=0.2.0"
+    "react-clickmap": ">=0.3.0"
   },
   "peerDependenciesMeta": {
     "react-clickmap": {
