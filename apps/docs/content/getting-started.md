@@ -55,6 +55,8 @@ That's all the client-side code you need. Events are automatically captured, bat
 | `scroll` | Current scroll depth and maximum scroll depth reached |
 | `pointer-move` | Mouse/touch movement coordinates — used for attention heatmaps |
 
+Each mode is gated independently: `capture={['dead-click']}` records dead clicks without also storing every plain `click`. Include `'click'` explicitly if you want raw clicks recorded alongside `dead-click`/`rage-click`.
+
 Enable only the modes you need:
 
 ```tsx
@@ -71,7 +73,7 @@ Enable only the modes you need:
 | `adapter` | `ClickmapAdapter` | required | Where to save and load events |
 | `projectId` | `string` | `"default"` | Scopes events by project |
 | `userId` | `string` | — | Optional user identifier for per-user queries |
-| `capture` | `CaptureType[]` | `["click"]` | Which event types to capture |
+| `capture` | `CaptureType[]` | `["click", "scroll"]` | Which event types to capture |
 | `sampleRate` | `number` | `1` | Fraction of sessions to capture (0–1) |
 | `flushIntervalMs` | `number` | `5000` | How often to flush the event queue |
 | `maxBatchSize` | `number` | `100` | Max events per batch before flushing early |

@@ -129,7 +129,7 @@ const adapter = fetchAdapter({
 
 **Capabilities:** `{ supportsAggregation: false, supportsRetention: false, supportsIdempotency: false }`
 
-**Reliability:** Attempts `sendBeacon` first for page-exit events, falls back to `fetch` with `keepalive`, and automatically splits payloads that exceed the keepalive byte limit.
+**Reliability:** Attempts `sendBeacon` first for page-exit events, falls back to `fetch` with `keepalive`, and automatically splits payloads that exceed the keepalive byte limit. `sendBeacon` cannot carry custom headers — as soon as `headers` is set, `save()` always uses `fetch(..., { keepalive: true })` instead of `sendBeacon`, even on page exit, so configured headers (e.g. an `Authorization` token) are never silently dropped.
 
 ### `createAdapter(implementation)`
 
@@ -185,9 +185,9 @@ const adapter = createSupabaseAdapter({
 });
 ```
 
-**Capabilities:** `{ supportsAggregation: true, supportsRetention: true, supportsIdempotency: true }`
+**Capabilities:** `{ supportsAggregation: false, supportsRetention: true, supportsIdempotency: true }`
 
-Communicates via the Supabase REST API (PostgREST). Uses the `Prefer: resolution=ignore-duplicates` header for idempotent inserts.
+Communicates via the Supabase REST API (PostgREST). Uses the `Prefer: resolution=ignore-duplicates` header for idempotent inserts, and chunks large `save()` batches to stay under PostgREST's request size limits. `loadAggregated()` is implemented, but it fetches raw rows and reduces them in JS rather than binning in SQL — `supportsAggregation` reports `false` so callers don't assume the server does the heavy lifting. Use the Postgres adapter for real server-side aggregation.
 
 ### `createNextFetchAdapter(options)` — `@react-clickmap/next`
 

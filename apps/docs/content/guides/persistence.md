@@ -81,7 +81,8 @@ const adapter = fetchAdapter({
 **Reliability features:**
 
 - Uses `navigator.sendBeacon()` when the user closes/navigates away (so events aren't lost)
-- Falls back to `fetch()` with `keepalive: true` for large payloads
+- Falls back to `fetch()` with `keepalive: true` when `sendBeacon` is unavailable, fails, or the payload exceeds the size limit
+- `sendBeacon` can't carry custom headers, so if you set `headers` (as in the auth example above), `save()` always uses `fetch(..., { keepalive: true })` instead — even on page exit — rather than silently dropping the headers
 - Automatically splits batches that exceed 64 KB (the browser's keepalive limit)
 - Retries failed events by re-queuing them in the next batch
 

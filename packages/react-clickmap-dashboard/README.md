@@ -2,6 +2,8 @@
 
 Batteries-included dashboard UI for `react-clickmap`.
 
+Ships with a `"use client"` directive in the built output, so it drops into a Next.js App Router page (as a client component) without extra wrapping.
+
 ## Install
 
 ```bash

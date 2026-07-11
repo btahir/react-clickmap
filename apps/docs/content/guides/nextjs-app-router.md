@@ -215,8 +215,8 @@ The core `ClickmapProvider` already handles route tracking internally — you on
 | `endpoint` | `string` | `"/api/clickmap"` | API route path |
 | `loadEndpoint` | `string` | same as `endpoint` | Separate endpoint for loading events |
 | `deleteEndpoint` | `string` | same as `loadEndpoint` | Separate endpoint for deleting events |
-| `headers` | `HeadersInit` | — | Custom headers (e.g., auth tokens) |
-| `preferBeacon` | `boolean` | `true` | Use sendBeacon for page-exit reliability |
+| `headers` | `HeadersInit` | — | Custom headers (e.g., auth tokens). Setting this forces `save()` to use `fetch(..., { keepalive: true })` instead of `sendBeacon`, since `sendBeacon` can't carry headers |
+| `preferBeacon` | `boolean` | `true` | Use sendBeacon for page-exit reliability (ignored once `headers` is set) |
 | `keepalive` | `boolean` | `true` | Use fetch keepalive flag |
 | `maxPayloadBytes` | `number` | `65536` | Split batches above this size |
 

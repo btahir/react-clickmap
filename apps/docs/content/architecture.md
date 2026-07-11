@@ -54,7 +54,7 @@ react-clickmap has two pipelines: **capture** (browser → database) and **rende
 
 When `ClickmapProvider` mounts, it starts listeners based on the `capture` prop:
 
-- **Click tracker** — Listens to `pointerdown` events. Normalizes coordinates to viewport percentages. Detects dead clicks (click on non-interactive elements) and rage clicks (3+ rapid clicks within a small radius).
+- **Click tracker** — Listens to `pointerup` events. Normalizes coordinates to viewport percentages. Detects dead clicks (click on non-interactive elements) and rage clicks (3+ rapid clicks within a small radius). Each capture type is gated independently, so enabling only `dead-click` or `rage-click` doesn't also store plain `click` events.
 - **Scroll tracker** — Uses a throttled scroll listener with trailing-edge behavior. Records current depth and maximum depth.
 - **Pointer-move tracker** — Throttled `pointermove` listener for attention heatmap data.
 

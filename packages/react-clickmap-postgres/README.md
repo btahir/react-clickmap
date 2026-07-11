@@ -31,3 +31,8 @@ const adapter = createPostgresAdapter({
 ```
 
 The adapter implements `save`, `load`, `deleteEvents`, and `loadAggregated`.
+
+- `save()` batches events into parameterized multi-row `INSERT`s and wraps them in a transaction when a flush needs more than one statement.
+- Inserts are idempotent via `ON CONFLICT (event_id) DO NOTHING`.
+- `loadAggregated()` bins coordinates in SQL, so `supportsAggregation` is honestly `true`.
+- This package doesn't depend on `react-clickmap` at runtime — it's a `peerDependency` used only for types.

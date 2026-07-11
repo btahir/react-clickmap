@@ -28,7 +28,7 @@ const adapter = fetchAdapter({ endpoint: "/api/clickmap" });
 | `adapter` | `ClickmapAdapter` | required | Persistence adapter |
 | `projectId` | `string` | `"default"` | Project scope for events |
 | `userId` | `string` | — | Optional user identifier |
-| `capture` | `CaptureType[]` | `["click"]` | Event types to capture |
+| `capture` | `CaptureType[]` | `["click", "scroll"]` | Event types to capture |
 | `sampleRate` | `number` | `1` | Fraction of sessions to capture (0–1). Deterministic by session ID — the same session always gets the same decision. |
 | `flushIntervalMs` | `number` | `5000` | Batcher flush interval in milliseconds |
 | `maxBatchSize` | `number` | `100` | Flush when the queue reaches this size |
@@ -65,8 +65,8 @@ import { Heatmap } from "react-clickmap";
 | `type` | `"heatmap" \| "clickmap" \| "scrollmap"` | `"heatmap"` | Visualization mode |
 | `device` | `"all" \| "desktop" \| "tablet" \| "mobile"` | `"all"` | Device filter |
 | `dateRange` | `{ from: number; to: number }` | — | Filter by timestamp range |
-| `radius` | `number` | `20` | Heatmap point radius in pixels |
-| `opacity` | `number` | `0.65` | Overlay opacity (0–1) |
+| `radius` | `number` | `25` | Heatmap point radius in pixels |
+| `opacity` | `number` | `0.6` | Overlay opacity (0–1) |
 | `gradient` | `GradientMap` | default gradient | Custom color gradient |
 | `showElementClicks` | `boolean` | `false` | Show click-count badges on elements |
 | `elementClickMinClicks` | `number` | `1` | Minimum clicks to show a badge |
@@ -114,7 +114,7 @@ import { ScrollDepth } from "react-clickmap";
 |---|---|---|---|
 | `adapter` | `ClickmapAdapter` | required | Where to load scroll events from |
 | `page` | `string` | — | Filter by pathname |
-| `width` | `number` | `8` | Rail width in pixels |
+| `width` | `number` | `14` | Rail width in pixels |
 
 ## `AttentionHeatmap`
 
@@ -137,8 +137,8 @@ import { AttentionHeatmap } from "react-clickmap";
 |---|---|---|---|
 | `adapter` | `ClickmapAdapter` | required | Where to load events from |
 | `page` | `string` | — | Filter by pathname |
-| `radius` | `number` | `25` | Point radius |
-| `opacity` | `number` | `0.6` | Overlay opacity |
+| `radius` | `number` | `28` | Point radius |
+| `opacity` | `number` | `0.55` | Overlay opacity |
 | `device` | `"all" \| DeviceType` | `"all"` | Device filter |
 
 ## `ComparisonHeatmap`
@@ -188,8 +188,8 @@ import { HeatmapThumbnail } from "react-clickmap";
 |---|---|---|---|
 | `adapter` | `ClickmapAdapter` | required | Where to load events from |
 | `page` | `string` | — | Filter by pathname |
-| `width` | `number` | `320` | Thumbnail width in pixels |
-| `height` | `number` | `240` | Thumbnail height in pixels |
+| `width` | `number` | `300` | Thumbnail width in pixels |
+| `height` | `number` | `200` | Thumbnail height in pixels |
 
 ## `ElementClickOverlay`
 

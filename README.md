@@ -99,6 +99,8 @@ That's it. Events are captured, batched, and persisted through your adapter. Ren
 | **Scroll Depth** | How far users scroll, with max-depth tracking |
 | **Pointer Move** | Mouse/touch movement for attention heatmaps |
 
+Each type in `capture` is gated independently — `capture={['dead-click']}` captures dead clicks without also storing every plain click. Add `'click'` explicitly if you want raw clicks recorded too.
+
 ### Render
 
 | Component | Purpose |
@@ -170,6 +172,8 @@ The core library is storage-agnostic. Use a built-in adapter or write your own:
 npm install @react-clickmap/postgres
 ```
 
+Apply the schema first — run [`packages/react-clickmap-postgres/sql/0001_init.sql`](packages/react-clickmap-postgres/sql/0001_init.sql) against your database, then wire up the adapter:
+
 ```ts
 import { createPostgresAdapter } from '@react-clickmap/postgres';
 
@@ -177,6 +181,8 @@ const adapter = createPostgresAdapter({
   sql: pool, // any object with query(text, params) => { rows, rowCount }
 });
 ```
+
+Batches are inserted with parameterized multi-row `INSERT`s, wrapped in a transaction when a flush spans more than one statement.
 
 ### Option 2: Supabase
 
@@ -192,6 +198,8 @@ const adapter = createSupabaseAdapter({
   anonKey: process.env.SUPABASE_ANON_KEY,
 });
 ```
+
+Saves are chunked automatically to stay under PostgREST's request size limits. Aggregation (`loadAggregated`) is done client-side by reducing loaded rows in JS, not in SQL, so the adapter honestly reports `supportsAggregation: false` — use the Postgres adapter if you need server-side binning for large datasets.
 
 ### Option 3: Custom adapter
 
