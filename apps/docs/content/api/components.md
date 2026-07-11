@@ -63,6 +63,7 @@ import { Heatmap } from "react-clickmap";
 | `page` | `string` | — | Filter events by pathname |
 | `routeKey` | `string` | — | Filter by SPA route key |
 | `type` | `"heatmap" \| "clickmap" \| "scrollmap"` | `"heatmap"` | Visualization mode |
+| `coordinateSpace` | `"viewport" \| "document"` | `"viewport"` | Coordinate frame — see [Full-page heatmaps](#full-page-heatmaps) |
 | `device` | `"all" \| "desktop" \| "tablet" \| "mobile"` | `"all"` | Device filter |
 | `dateRange` | `{ from: number; to: number }` | — | Filter by timestamp range |
 | `radius` | `number` | `25` | Heatmap point radius in pixels |
@@ -71,6 +72,18 @@ import { Heatmap } from "react-clickmap";
 | `showElementClicks` | `boolean` | `false` | Show click-count badges on elements |
 | `elementClickMinClicks` | `number` | `1` | Minimum clicks to show a badge |
 | `elementClickMaxBadges` | `number` | `20` | Maximum badges to render |
+
+### Full-page heatmaps
+
+By default the overlay is viewport-relative — a `position: fixed` layer sized to the window, correct for above-the-fold analysis. For long, scrollable pages, set `coordinateSpace="document"`:
+
+```tsx
+<Heatmap adapter={adapter} page="/pricing" coordinateSpace="document" />
+```
+
+In document mode the overlay is a `position: absolute` layer spanning the full `document.documentElement.scrollHeight`, and points are placed from the document-relative coordinates (`docX` / `docY`) captured on every event. It re-renders on resize as the page reflows. Mount `<Heatmap>` in a non-`position: relative` container (e.g. directly under `body`) so the overlay aligns with the document origin.
+
+`coordinateSpace` is also accepted by `AttentionHeatmap` and `ElementClickOverlay`. `ScrollDepth` is unaffected. Events captured before document coordinates existed (pre-v0.3) are skipped in document mode; they render normally in the default viewport mode.
 
 ### Imperative handle
 
@@ -140,6 +153,7 @@ import { AttentionHeatmap } from "react-clickmap";
 | `radius` | `number` | `28` | Point radius |
 | `opacity` | `number` | `0.55` | Overlay opacity |
 | `device` | `"all" \| DeviceType` | `"all"` | Device filter |
+| `coordinateSpace` | `"viewport" \| "document"` | `"viewport"` | Coordinate frame (full-page overlay in document mode) |
 
 ## `ComparisonHeatmap`
 
@@ -214,6 +228,7 @@ import { ElementClickOverlay } from "react-clickmap";
 | `page` | `string` | — | Filter by pathname |
 | `minClicks` | `number` | `1` | Minimum clicks to show a badge |
 | `maxBadges` | `number` | `20` | Maximum badges to render |
+| `coordinateSpace` | `"viewport" \| "document"` | `"viewport"` | In document mode, badges are absolutely positioned over elements anywhere in the page and scroll with it |
 
 ## `useClickmap` hook
 

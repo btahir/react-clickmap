@@ -4,7 +4,7 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "rea
 import { ElementClickOverlay } from "./element-click-overlay";
 import { createRenderer, DEFAULT_GRADIENT, type GradientMap } from "./render";
 import { summarizeScrollDepth, toRenderPoints } from "./render/normalize";
-import type { ClickmapAdapter, HeatmapQuery } from "./types";
+import type { ClickmapAdapter, CoordinateSpace, HeatmapQuery } from "./types";
 import { useHeatmapData } from "./use-heatmap-data";
 
 export type HeatmapType = "heatmap" | "clickmap" | "scrollmap";
@@ -30,6 +30,17 @@ export interface HeatmapProps {
   showElementClicks?: boolean;
   elementClickMaxBadges?: number;
   elementClickMinClicks?: number;
+  /**
+   * Coordinate frame to render in.
+   * - `"viewport"` (default): a `position: fixed` overlay sized to the
+   *   viewport — correct for above-the-fold heatmaps (zero behavior change).
+   * - `"document"`: a `position: absolute` overlay spanning the full document
+   *   height, with points placed from document-relative coordinates. Mount
+   *   `<Heatmap>` in a non-`position: relative` container (e.g. directly in
+   *   `body`) so the overlay aligns with the document origin. Events captured
+   *   before document coordinates existed are skipped in this mode.
+   */
+  coordinateSpace?: CoordinateSpace;
 }
 
 export interface HeatmapHandle {
@@ -118,11 +129,20 @@ export const Heatmap = forwardRef<HeatmapHandle, HeatmapProps>(function Heatmap(
     showElementClicks = false,
     elementClickMaxBadges = 20,
     elementClickMinClicks = 1,
+    coordinateSpace = "viewport",
   }: HeatmapProps,
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<ReturnType<typeof createRenderer> | null>(null);
+  // Holds the latest draw closure so the resize handler can repaint the
+  // current points after the canvas is re-sized (important in document mode
+  // where the overlay tracks the full, changing document height).
+  const drawRef = useRef<() => void>(() => {});
+
+  // Scrollmap remains a viewport band visualization; only the pixel heatmaps
+  // honor document-space full-page rendering.
+  const useDocumentCanvas = coordinateSpace === "document" && type !== "scrollmap";
 
   const query = useMemo<HeatmapQuery>(() => {
     const nextQuery: HeatmapQuery = {};
@@ -219,9 +239,15 @@ export const Heatmap = forwardRef<HeatmapHandle, HeatmapProps>(function Heatmap(
     }
 
     const resize = (): void => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      rendererRef.current?.resize(canvas.width, canvas.height);
+      const root = document.documentElement;
+      const width = useDocumentCanvas ? root.scrollWidth : window.innerWidth;
+      const height = useDocumentCanvas ? root.scrollHeight : window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      canvas.style.width = useDocumentCanvas ? `${width}px` : "";
+      canvas.style.height = useDocumentCanvas ? `${height}px` : "";
+      rendererRef.current?.resize(width, height);
+      drawRef.current();
     };
 
     resize();
@@ -233,7 +259,7 @@ export const Heatmap = forwardRef<HeatmapHandle, HeatmapProps>(function Heatmap(
       observer.disconnect();
       window.removeEventListener("resize", resize);
     };
-  }, []);
+  }, [useDocumentCanvas]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -253,21 +279,27 @@ export const Heatmap = forwardRef<HeatmapHandle, HeatmapProps>(function Heatmap(
       rendererRef.current = createRenderer(canvas, { preferWebGL: true });
     }
 
-    const points = toRenderPoints(data);
+    const points = toRenderPoints(data, coordinateSpace);
 
-    rendererRef.current.render(points, {
-      mode: type,
-      width: canvas.width,
-      height: canvas.height,
-      radius,
-      opacity,
-      gradient,
-    });
+    drawRef.current = (): void => {
+      rendererRef.current?.render(points, {
+        // scrollmap is handled by the early return above; here `type` is
+        // always a pixel-heatmap mode.
+        mode: type,
+        width: canvas.width,
+        height: canvas.height,
+        radius,
+        opacity,
+        gradient,
+      });
+    };
+
+    drawRef.current();
 
     return () => {
       rendererRef.current?.clear();
     };
-  }, [data, gradient, opacity, radius, type]);
+  }, [coordinateSpace, data, gradient, opacity, radius, type]);
 
   useEffect(() => {
     return () => {
@@ -282,8 +314,8 @@ export const Heatmap = forwardRef<HeatmapHandle, HeatmapProps>(function Heatmap(
         ref={canvasRef}
         className={className}
         style={{
-          position: "fixed",
-          inset: 0,
+          position: useDocumentCanvas ? "absolute" : "fixed",
+          ...(useDocumentCanvas ? { top: 0, left: 0 } : { inset: 0 }),
           pointerEvents: interactive ? "auto" : "none",
           zIndex,
         }}
@@ -295,6 +327,7 @@ export const Heatmap = forwardRef<HeatmapHandle, HeatmapProps>(function Heatmap(
           zIndex={zIndex + 1}
           maxBadges={elementClickMaxBadges}
           minClicks={elementClickMinClicks}
+          coordinateSpace={coordinateSpace}
         />
       ) : null}
     </>

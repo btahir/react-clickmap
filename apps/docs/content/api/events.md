@@ -43,15 +43,35 @@ interface ViewportState {
 }
 ```
 
+## Document coordinates (all coordinate-bearing events)
+
+Click, dead-click, rage-click, and pointer-move events additionally carry
+document-relative coordinates for full-page heatmaps. All fields are optional
+and additive — events captured before v0.3 (or clients that only report
+viewport coordinates) omit them:
+
+```ts
+interface DocumentPosition {
+  docX?: number;      // 0–100 percentage of document scrollWidth
+  docY?: number;      // 0–100 percentage of document scrollHeight
+  docWidth?: number;  // absolute document width (px) at capture time
+  docHeight?: number; // absolute document height (px) at capture time
+}
+```
+
+`docX` / `docY` power `<Heatmap coordinateSpace="document" />`; `docWidth` /
+`docHeight` are handy for reconstructing pixel positions or bucketing by layout.
+
 ## Click event
 
 ```ts
-interface ClickEvent extends EventBase {
+interface ClickEvent extends EventBase, DocumentPosition {
   type: "click";
   x: number;                 // viewport-relative X (0–100 percentage)
   y: number;                 // viewport-relative Y (0–100 percentage)
   pointerType: PointerType;  // "mouse" | "touch" | "pen" | "unknown"
   selector?: string;         // CSS selector of the clicked element (if available)
+  // + optional docX / docY / docWidth / docHeight (see above)
 }
 ```
 
@@ -140,12 +160,12 @@ function handleEvent(event: CaptureEvent) {
 
 ## Coordinate system
 
-Click and pointer-move coordinates are stored as **viewport percentages** (0–100):
+Click and pointer-move coordinates are stored in **two frames**, both as percentages (0–100):
 
-- `x = 0` is the left edge, `x = 100` is the right edge
-- `y = 0` is the top edge, `y = 100` is the bottom edge
+- **Viewport** (`x` / `y`) — relative to the visible window. `x = 0` is the left edge, `x = 100` the right; `y = 0` the top, `y = 100` the bottom. Correct for above-the-fold overlays.
+- **Document** (`docX` / `docY`) — relative to the full scrollable document (`scrollWidth` / `scrollHeight`). Correct for full-page overlays on long pages.
 
-This makes events resolution-independent — a click in the same relative position produces the same coordinates regardless of viewport size.
+Both are resolution-independent — the same relative position produces the same percentages regardless of viewport size. Render the frame you want with `<Heatmap coordinateSpace="viewport" | "document" />` (default `"viewport"`). Old events without document coordinates are skipped in document mode.
 
 ## Event ID and deduplication
 

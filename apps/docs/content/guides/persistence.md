@@ -125,6 +125,10 @@ CREATE TABLE clickmap_events (
   scroll_y            INTEGER NOT NULL DEFAULT 0,
   x_pct               DOUBLE PRECISION,
   y_pct               DOUBLE PRECISION,
+  doc_x_pct           DOUBLE PRECISION,
+  doc_y_pct           DOUBLE PRECISION,
+  doc_w               INTEGER,
+  doc_h               INTEGER,
   pointer_type        TEXT,
   selector_masked_path TEXT,
   depth_pct           DOUBLE PRECISION,
@@ -142,6 +146,14 @@ CREATE INDEX idx_clickmap_session ON clickmap_events (session_id);
 CREATE INDEX idx_clickmap_event_type ON clickmap_events (event_type);
 ```
 
+> The canonical, versioned schema (including the `clickmap_sessions`,
+> `clickmap_heatmap_bins_daily`, and `clickmap_element_clicks_daily` rollup
+> tables) lives in the package's `sql/0001_init.sql` and
+> `sql/0002_document_coordinates.sql`. Run both in order. Migration `0002` is
+> additive — it adds the `doc_x_pct` / `doc_y_pct` / `doc_w` / `doc_h` columns
+> shown above and makes the daily bins coordinate-space aware. Existing rows
+> keep loading; only new events populate the document columns.
+
 **Column reference:**
 
 | Column | Type | Description |
@@ -158,6 +170,8 @@ CREATE INDEX idx_clickmap_event_type ON clickmap_events (event_type);
 | `viewport_w/h` | `INTEGER` | Viewport dimensions at capture time |
 | `scroll_x/y` | `INTEGER` | Scroll position at capture time |
 | `x_pct/y_pct` | `DOUBLE PRECISION` | Click/pointer coordinates as viewport percentages (0–100) |
+| `doc_x_pct/doc_y_pct` | `DOUBLE PRECISION` | Document-relative coordinates as percentages of scrollWidth/scrollHeight (full-page heatmaps). Nullable. |
+| `doc_w/doc_h` | `INTEGER` | Absolute document size (px) at capture time. Nullable. |
 | `pointer_type` | `TEXT` | `mouse`, `touch`, `pen`, or `unknown` |
 | `depth_pct` | `DOUBLE PRECISION` | Current scroll depth (scroll events only) |
 | `max_depth_pct` | `DOUBLE PRECISION` | Maximum scroll depth reached (scroll events only) |
@@ -298,6 +312,34 @@ const adapter = createPostgresAdapter({
 ```
 
 Table names are validated against `[a-zA-Z_][a-zA-Z0-9_]*` to prevent SQL injection.
+
+### Server-side aggregation (daily rollups)
+
+As raw event volume grows, aggregating on every heatmap load gets expensive. `rollupDaily()` pre-aggregates a UTC day of events into the `clickmap_heatmap_bins_daily` and `clickmap_element_clicks_daily` tables. It is **idempotent** — it deletes the day's rollup rows (scoped to any `routeKey` / `projectId` you pass) and re-inserts them in one transaction, so re-running a day is always safe. Both viewport and document coordinate spaces are rolled up.
+
+```ts
+import { rollupDaily } from "@react-clickmap/postgres";
+
+// Roll up the previous complete UTC day (the default) — run daily.
+await rollupDaily(sql);
+
+// Or a specific day / scope, e.g. for backfills.
+await rollupDaily(sql, { day: "2026-07-01", routeKey: "/pricing" });
+```
+
+Once a day is rolled up, `loadAggregated()` automatically serves day-aligned ranges from the small bin tables instead of scanning raw events (pass `preferDailyBins: false` to the adapter to opt out).
+
+**Scheduling.** Run it once per day for the previous day:
+
+```ts
+// Vercel Cron / Cloud Scheduler / node-cron at ~01:00 UTC
+export async function GET() {
+  await rollupDaily({ query: (text, params) => pool.query(text, params) });
+  return Response.json({ ok: true });
+}
+```
+
+Or schedule it in-database with `pg_cron` by wrapping the rollup logic in a stored procedure. Backfilling is a loop over days calling `rollupDaily({ day })`.
 
 ## Database persistence: Supabase
 

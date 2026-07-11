@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { createRenderer, DEFAULT_GRADIENT, type GradientMap } from "./render";
 import { toAttentionRenderPoints } from "./render/attention";
-import type { ClickmapAdapter, HeatmapQuery } from "./types";
+import type { ClickmapAdapter, CoordinateSpace, HeatmapQuery } from "./types";
 import { useHeatmapData } from "./use-heatmap-data";
 
 export interface AttentionHeatmapProps {
@@ -16,6 +16,12 @@ export interface AttentionHeatmapProps {
   gradient?: GradientMap;
   zIndex?: number;
   className?: string;
+  /**
+   * Coordinate frame to render in. `"document"` renders a full-page overlay
+   * from document-relative coordinates; see `Heatmap` for mounting notes.
+   * Defaults to `"viewport"`.
+   */
+  coordinateSpace?: CoordinateSpace;
 }
 
 export function AttentionHeatmap({
@@ -28,9 +34,12 @@ export function AttentionHeatmap({
   gradient = DEFAULT_GRADIENT,
   zIndex = 9998,
   className,
+  coordinateSpace = "viewport",
 }: AttentionHeatmapProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<ReturnType<typeof createRenderer> | null>(null);
+  const drawRef = useRef<() => void>(() => {});
+  const useDocumentCanvas = coordinateSpace === "document";
 
   const query = useMemo<HeatmapQuery>(() => {
     const nextQuery: HeatmapQuery = {
@@ -58,9 +67,15 @@ export function AttentionHeatmap({
     }
 
     const resize = (): void => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      rendererRef.current?.resize(canvas.width, canvas.height);
+      const root = document.documentElement;
+      const width = useDocumentCanvas ? root.scrollWidth : window.innerWidth;
+      const height = useDocumentCanvas ? root.scrollHeight : window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      canvas.style.width = useDocumentCanvas ? `${width}px` : "";
+      canvas.style.height = useDocumentCanvas ? `${height}px` : "";
+      rendererRef.current?.resize(width, height);
+      drawRef.current();
     };
 
     resize();
@@ -72,7 +87,7 @@ export function AttentionHeatmap({
       observer.disconnect();
       window.removeEventListener("resize", resize);
     };
-  }, []);
+  }, [useDocumentCanvas]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -84,19 +99,25 @@ export function AttentionHeatmap({
       rendererRef.current = createRenderer(canvas, { preferWebGL: true });
     }
 
-    rendererRef.current.render(toAttentionRenderPoints(data), {
-      mode: "heatmap",
-      width: canvas.width,
-      height: canvas.height,
-      radius,
-      opacity,
-      gradient,
-    });
+    const points = toAttentionRenderPoints(data, coordinateSpace);
+
+    drawRef.current = (): void => {
+      rendererRef.current?.render(points, {
+        mode: "heatmap",
+        width: canvas.width,
+        height: canvas.height,
+        radius,
+        opacity,
+        gradient,
+      });
+    };
+
+    drawRef.current();
 
     return () => {
       rendererRef.current?.clear();
     };
-  }, [data, gradient, opacity, radius]);
+  }, [coordinateSpace, data, gradient, opacity, radius]);
 
   useEffect(() => {
     return () => {
@@ -110,8 +131,8 @@ export function AttentionHeatmap({
       ref={canvasRef}
       className={className}
       style={{
-        position: "fixed",
-        inset: 0,
+        position: useDocumentCanvas ? "absolute" : "fixed",
+        ...(useDocumentCanvas ? { top: 0, left: 0 } : { inset: 0 }),
         pointerEvents: "none",
         zIndex,
       }}

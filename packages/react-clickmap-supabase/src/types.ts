@@ -24,6 +24,10 @@ export interface SupabaseEventRow {
   scroll_y: number;
   x_pct: number | null;
   y_pct: number | null;
+  doc_x_pct?: number | null;
+  doc_y_pct?: number | null;
+  doc_w?: number | null;
+  doc_h?: number | null;
   pointer_type: string | null;
   selector_masked_path: string | null;
   depth_pct: number | null;

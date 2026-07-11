@@ -64,6 +64,10 @@ function toRow(event: CaptureEvent): Record<string, unknown> {
     scroll_y: event.viewport.scrollY,
     x_pct: hasCoordinates ? event.x : null,
     y_pct: hasCoordinates ? event.y : null,
+    doc_x_pct: "docX" in event && typeof event.docX === "number" ? event.docX : null,
+    doc_y_pct: "docY" in event && typeof event.docY === "number" ? event.docY : null,
+    doc_w: "docWidth" in event && typeof event.docWidth === "number" ? event.docWidth : null,
+    doc_h: "docHeight" in event && typeof event.docHeight === "number" ? event.docHeight : null,
     pointer_type: hasPointerType ? event.pointerType : null,
     selector_masked_path: hasSelector ? (event.selector ?? null) : null,
     depth_pct: event.type === "scroll" ? event.depth : null,
@@ -98,6 +102,13 @@ function fromRow(row: SupabaseEventRow): CaptureEvent {
   const selector = row.selector_masked_path ? { selector: row.selector_masked_path } : {};
   const payload = row.payload_jsonb ?? {};
 
+  // Additive document-relative coordinates; omitted for rows predating them.
+  const doc: Record<string, number> = {};
+  if (typeof row.doc_x_pct === "number") doc.docX = row.doc_x_pct;
+  if (typeof row.doc_y_pct === "number") doc.docY = row.doc_y_pct;
+  if (typeof row.doc_w === "number") doc.docWidth = row.doc_w;
+  if (typeof row.doc_h === "number") doc.docHeight = row.doc_h;
+
   if (row.event_type === "scroll") {
     return {
       ...base,
@@ -113,6 +124,7 @@ function fromRow(row: SupabaseEventRow): CaptureEvent {
       type: "pointer-move",
       x: row.x_pct ?? 0,
       y: row.y_pct ?? 0,
+      ...doc,
       pointerType: normalizePointerType(row.pointer_type),
     };
   }
@@ -124,6 +136,7 @@ function fromRow(row: SupabaseEventRow): CaptureEvent {
       type: "rage-click",
       x: row.x_pct ?? 0,
       y: row.y_pct ?? 0,
+      ...doc,
       pointerType: normalizePointerType(row.pointer_type),
       clusterSize:
         typeof payload.clusterSize === "number"
@@ -143,6 +156,7 @@ function fromRow(row: SupabaseEventRow): CaptureEvent {
       type: "dead-click",
       x: row.x_pct ?? 0,
       y: row.y_pct ?? 0,
+      ...doc,
       pointerType: normalizePointerType(row.pointer_type),
       reason: "non-interactive-target",
     };
@@ -154,6 +168,7 @@ function fromRow(row: SupabaseEventRow): CaptureEvent {
     type: "click",
     x: row.x_pct ?? 0,
     y: row.y_pct ?? 0,
+    ...doc,
     pointerType: normalizePointerType(row.pointer_type),
   };
 }
@@ -300,20 +315,51 @@ export function createSupabaseAdapter(options: SupabaseAdapterOptions): Clickmap
     async loadAggregated(query: HeatmapQuery): Promise<AggregatedHeatmapPayload> {
       const events = await this.load(query);
       const bucketMap = new Map<string, { x: number; y: number; value: number }>();
+      const documentSpace = query.coordinateSpace === "document";
 
-      let width = 1000;
-      let height = 800;
+      let width = documentSpace ? 0 : 1000;
+      let height = documentSpace ? 0 : 800;
 
       for (const event of events) {
-        width = Math.max(width, event.viewport.width);
-        height = Math.max(height, event.viewport.height);
+        if (documentSpace) {
+          // Document-space width/height come from the per-event doc size, not
+          // the viewport; events written before doc coordinates existed carry
+          // neither and are skipped below, so they can't drag these to 0.
+          if ("docWidth" in event && typeof event.docWidth === "number") {
+            width = Math.max(width, event.docWidth);
+          }
+          if ("docHeight" in event && typeof event.docHeight === "number") {
+            height = Math.max(height, event.docHeight);
+          }
+        } else {
+          width = Math.max(width, event.viewport.width);
+          height = Math.max(height, event.viewport.height);
+        }
 
         if (!("x" in event) || !("y" in event)) {
           continue;
         }
 
-        const x = Math.round(event.x * 100) / 100;
-        const y = Math.round(event.y * 100) / 100;
+        let binX: number;
+        let binY: number;
+        if (documentSpace) {
+          if (
+            !("docX" in event) ||
+            !("docY" in event) ||
+            typeof event.docX !== "number" ||
+            typeof event.docY !== "number"
+          ) {
+            continue;
+          }
+          binX = event.docX;
+          binY = event.docY;
+        } else {
+          binX = event.x;
+          binY = event.y;
+        }
+
+        const x = Math.round(binX * 100) / 100;
+        const y = Math.round(binY * 100) / 100;
         const key = `${x}:${y}`;
         const current = bucketMap.get(key) ?? { x, y, value: 0 };
         current.value += event.type === "rage-click" ? 2 : 1;
@@ -322,8 +368,8 @@ export function createSupabaseAdapter(options: SupabaseAdapterOptions): Clickmap
 
       const bins = Array.from(bucketMap.values());
       return {
-        width,
-        height,
+        width: width || (documentSpace ? 5000 : 1000),
+        height: height || (documentSpace ? 5000 : 800),
         bins,
         totalEvents: bins.reduce((sum, bin) => sum + bin.value, 0),
       };

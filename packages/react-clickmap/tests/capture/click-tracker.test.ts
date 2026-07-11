@@ -55,6 +55,41 @@ describe("createClickTracker", () => {
     );
   });
 
+  it("captures document-relative coordinates alongside viewport ones", () => {
+    const emit = vi.fn();
+    const root = document.documentElement;
+    const scrollWidthSpy = vi.spyOn(root, "scrollWidth", "get").mockReturnValue(1200);
+    const scrollHeightSpy = vi.spyOn(root, "scrollHeight", "get").mockReturnValue(4800);
+    const scrollYSpy = vi.spyOn(window, "scrollY", "get").mockReturnValue(2160);
+
+    const cleanup = createClickTracker({
+      projectId: "project-1",
+      sessionId: "session-1",
+      userId: undefined,
+      deviceType: "desktop",
+      getPathname: () => "/pricing",
+      getRouteKey: () => "/pricing",
+      emit,
+      enableRageClicks: false,
+    });
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    // dispatchPointerUp fires at clientX 120, clientY 240.
+    dispatchPointerUp(container);
+    cleanup();
+
+    const event = emit.mock.calls[0]?.[0];
+    expect(event.docX).toBeCloseTo((120 / 1200) * 100, 5); // 10
+    expect(event.docY).toBeCloseTo(((240 + 2160) / 4800) * 100, 5); // 50
+    expect(event.docWidth).toBe(1200);
+    expect(event.docHeight).toBe(4800);
+
+    scrollWidthSpy.mockRestore();
+    scrollHeightSpy.mockRestore();
+    scrollYSpy.mockRestore();
+  });
+
   it("does not emit dead-click for interactive elements", () => {
     const emit = vi.fn();
 

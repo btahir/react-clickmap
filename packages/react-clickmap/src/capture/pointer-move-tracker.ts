@@ -2,6 +2,7 @@ import type { CaptureEvent, DeviceType, PointerMoveEvent, PointerType } from "..
 import { toViewportPercentages } from "../utils/coordinates";
 import { matchesAnySelector } from "../utils/element-selector";
 import { createEventId } from "../utils/event-id";
+import { createDocumentPosition } from "./click-tracker";
 
 export interface PointerMoveTrackerOptions {
   projectId: string;
@@ -76,6 +77,7 @@ export function createPointerMoveTracker(options: PointerMoveTrackerOptions): ()
       viewport: createViewportState(),
       x: coordinates.x,
       y: coordinates.y,
+      ...createDocumentPosition(event.clientX, event.clientY),
       pointerType: normalizePointerType(event.pointerType),
     };
 

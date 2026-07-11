@@ -93,7 +93,7 @@ That's it. Events are captured, batched, and persisted through your adapter. Ren
 
 | Event Type | Description |
 |---|---|
-| **Click** | Every click with viewport-relative coordinates |
+| **Click** | Every click, recorded in both viewport-relative and document-relative (full-page) coordinates |
 | **Rage Click** | Rapid repeated clicks on the same target — UX frustration signal |
 | **Dead Click** | Clicks on non-interactive elements — layout confusion signal |
 | **Scroll Depth** | How far users scroll, with max-depth tracking |
@@ -105,12 +105,14 @@ Each type in `capture` is gated independently — `capture={['dead-click']}` cap
 
 | Component | Purpose |
 |---|---|
-| `<Heatmap>` | Full-page heatmap, clickmap, or scrollmap overlay |
-| `<AttentionHeatmap>` | Pointer-move attention visualization |
+| `<Heatmap>` | Viewport or full-page (`coordinateSpace="document"`) heatmap, clickmap, or scrollmap overlay |
+| `<AttentionHeatmap>` | Pointer-move attention visualization (viewport or document space) |
 | `<ScrollDepth>` | Horizontal scroll-depth bands |
 | `<ComparisonHeatmap>` | Side-by-side A/B heatmap comparison |
 | `<HeatmapThumbnail>` | Mini heatmap preview cards |
-| `<ElementClickOverlay>` | Per-element click count badges |
+| `<ElementClickOverlay>` | Per-element click count badges (viewport or document space) |
+
+**Full-page heatmaps.** Long scrollable pages need document-relative coordinates, not viewport-relative ones. Pass `coordinateSpace="document"` to `<Heatmap>` / `<AttentionHeatmap>` / `<ElementClickOverlay>` to render an overlay that spans the entire document height and places points from the document-relative coordinates captured on every event. The default (`"viewport"`) is unchanged. See the [core package README](./packages/react-clickmap/README.md#full-page-document-relative-heatmaps).
 
 ### Rendering Engine
 
@@ -172,7 +174,7 @@ The core library is storage-agnostic. Use a built-in adapter or write your own:
 npm install @react-clickmap/postgres
 ```
 
-Apply the schema first — run [`packages/react-clickmap-postgres/sql/0001_init.sql`](packages/react-clickmap-postgres/sql/0001_init.sql) against your database, then wire up the adapter:
+Apply the schema first — run [`sql/0001_init.sql`](packages/react-clickmap-postgres/sql/0001_init.sql) then [`sql/0002_document_coordinates.sql`](packages/react-clickmap-postgres/sql/0002_document_coordinates.sql) against your database, then wire up the adapter:
 
 ```ts
 import { createPostgresAdapter } from '@react-clickmap/postgres';
@@ -183,6 +185,8 @@ const adapter = createPostgresAdapter({
 ```
 
 Batches are inserted with parameterized multi-row `INSERT`s, wrapped in a transaction when a flush spans more than one statement.
+
+**Server-side aggregation.** Schedule `rollupDaily(sql, { day })` (cron / `pg_cron` / serverless schedule) to pre-aggregate each day into the daily bin tables. `loadAggregated()` then serves day-aligned ranges from those tables instead of scanning raw events, for both viewport and full-page (`coordinateSpace: "document"`) heatmaps. See the [postgres package README](packages/react-clickmap-postgres/README.md#server-side-aggregation-daily-rollups).
 
 ### Option 2: Supabase
 

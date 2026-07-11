@@ -53,11 +53,13 @@ interface AggregatedHeatmapPayload {
 }
 
 interface AggregatedBin {
-  x: number;    // viewport percentage (0–100)
-  y: number;    // viewport percentage (0–100)
+  x: number;    // percentage (0–100) in the requested coordinate space
+  y: number;    // percentage (0–100) in the requested coordinate space
   value: number; // weight (rage clicks count as 2)
 }
 ```
+
+Pass `coordinateSpace: "document"` in the query to aggregate the full-page (document-relative) heatmap; the default is `"viewport"`.
 
 ## `HeatmapQuery`
 
@@ -75,6 +77,7 @@ interface HeatmapQuery {
   from?: number;                                     // timestamp >= (ms since epoch)
   to?: number;                                       // timestamp <= (ms since epoch)
   limit?: number;                                    // max results
+  coordinateSpace?: "viewport" | "document";        // frame for loadAggregated() (default "viewport")
 }
 ```
 
@@ -159,12 +162,24 @@ import { createPostgresAdapter } from "@react-clickmap/postgres";
 const adapter = createPostgresAdapter({
   sql: pool,                    // any { query(text, params) => { rows, rowCount } }
   tableName: "clickmap_events", // default
+  preferDailyBins: true,        // default — read daily rollups when possible
 });
 ```
 
 **Capabilities:** `{ supportsAggregation: true, supportsRetention: true, supportsIdempotency: true }`
 
-Uses `ON CONFLICT (event_id) DO NOTHING` for idempotent inserts. Supports server-side coordinate binning via `loadAggregated()`.
+Uses `ON CONFLICT (event_id) DO NOTHING` for idempotent inserts. Supports server-side coordinate binning via `loadAggregated()` for both viewport and document coordinate spaces.
+
+Apply migrations `sql/0001_init.sql` then `sql/0002_document_coordinates.sql` (the latter adds document-coordinate columns and coordinate-space-aware daily bins). Both are additive.
+
+**Daily rollups.** `rollupDaily(sql, { day, routeKey })` pre-aggregates a UTC day of raw events into `clickmap_heatmap_bins_daily` and `clickmap_element_clicks_daily` (idempotent — safe to re-run). Schedule it once per day (cron / `pg_cron`), and `loadAggregated()` will serve day-aligned ranges from those tables instead of scanning raw events:
+
+```ts
+import { rollupDaily } from "@react-clickmap/postgres";
+
+await rollupDaily(sql);                              // previous complete UTC day
+await rollupDaily(sql, { day: "2026-07-01" });       // a specific day
+```
 
 See the [Persistence Guide](/docs/guides/persistence) for the full SQL schema and setup instructions.
 

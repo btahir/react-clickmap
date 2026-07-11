@@ -18,6 +18,27 @@ export function toViewportPercentages(
   };
 }
 
+/**
+ * Convert a viewport-relative pointer position into document-relative
+ * percentages against the full scrollable document size. Returns `undefined`
+ * when the document has no measurable size (e.g. in non-DOM environments), so
+ * callers can leave the additive doc fields unset.
+ */
+export function toDocumentPercentages(
+  clientX: number,
+  clientY: number,
+  scrollX: number,
+  scrollY: number,
+  scrollWidth: number,
+  scrollHeight: number,
+): { x: number; y: number } | undefined {
+  if (scrollWidth <= 0 || scrollHeight <= 0) {
+    return undefined;
+  }
+
+  return toViewportPercentages(clientX + scrollX, clientY + scrollY, scrollWidth, scrollHeight);
+}
+
 export function fromViewportPercentages(
   x: number,
   y: number,

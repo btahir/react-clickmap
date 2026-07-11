@@ -1,16 +1,44 @@
-import type { CaptureEvent } from "../types";
+import type { CaptureEvent, CoordinateSpace } from "../types";
 import type { RenderPoint } from "./types";
 
-export function toRenderPoints(events: CaptureEvent[]): RenderPoint[] {
+/**
+ * Resolve the coordinate pair to render an event at for the requested
+ * coordinate space. In `document` mode, events that predate document-relative
+ * capture (no `docX`/`docY`) return `undefined` and are skipped by callers.
+ */
+export function resolveCoordinates(
+  event: CaptureEvent,
+  coordinateSpace: CoordinateSpace,
+): { x: number; y: number } | undefined {
+  if (event.type === "scroll") {
+    return undefined;
+  }
+
+  if (coordinateSpace === "document") {
+    if (typeof event.docX !== "number" || typeof event.docY !== "number") {
+      return undefined;
+    }
+
+    return { x: event.docX, y: event.docY };
+  }
+
+  return { x: event.x, y: event.y };
+}
+
+export function toRenderPoints(
+  events: CaptureEvent[],
+  coordinateSpace: CoordinateSpace = "viewport",
+): RenderPoint[] {
   const pointWeights = new Map<string, { x: number; y: number; weight: number }>();
 
   for (const event of events) {
-    if (event.type === "scroll") {
+    const coordinates = resolveCoordinates(event, coordinateSpace);
+    if (!coordinates) {
       continue;
     }
 
-    const x = Math.round(event.x * 10) / 10;
-    const y = Math.round(event.y * 10) / 10;
+    const x = Math.round(coordinates.x * 10) / 10;
+    const y = Math.round(coordinates.y * 10) / 10;
     const key = `${x}:${y}`;
     const current = pointWeights.get(key);
     const increment = event.type === "rage-click" ? 2 : 1;

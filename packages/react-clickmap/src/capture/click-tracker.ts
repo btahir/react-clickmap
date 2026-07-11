@@ -3,10 +3,11 @@ import type {
   ClickEvent,
   DeadClickEvent,
   DeviceType,
+  DocumentPosition,
   PointerType,
   RageClickEvent,
 } from "../types";
-import { toViewportPercentages } from "../utils/coordinates";
+import { toDocumentPercentages, toViewportPercentages } from "../utils/coordinates";
 import { getElementSelector, matchesAnySelector } from "../utils/element-selector";
 import { createEventId } from "../utils/event-id";
 
@@ -54,6 +55,35 @@ function createViewportState() {
   };
 }
 
+/**
+ * Compute the document-relative position for a pointer event. Additive: when
+ * the document size can't be measured, every field is left `undefined`.
+ */
+export function createDocumentPosition(clientX: number, clientY: number): DocumentPosition {
+  const root = document.documentElement;
+  const scrollWidth = root.scrollWidth;
+  const scrollHeight = root.scrollHeight;
+  const docCoordinates = toDocumentPercentages(
+    clientX,
+    clientY,
+    window.scrollX,
+    window.scrollY,
+    scrollWidth,
+    scrollHeight,
+  );
+
+  if (!docCoordinates) {
+    return {};
+  }
+
+  return {
+    docX: docCoordinates.x,
+    docY: docCoordinates.y,
+    docWidth: scrollWidth,
+    docHeight: scrollHeight,
+  };
+}
+
 function isInteractiveElement(element: Element): boolean {
   if (element instanceof HTMLElement && element.isContentEditable) {
     return true;
@@ -91,6 +121,7 @@ export function createClickTracker(options: ClickTrackerOptions): () => void {
 
     const pointerType = toPointerType(event.pointerType);
     const selector = getElementSelector(targetElement, { maskSelectors });
+    const documentPosition = createDocumentPosition(event.clientX, event.clientY);
 
     const clickEvent: ClickEvent = {
       schemaVersion: 1,
@@ -107,6 +138,7 @@ export function createClickTracker(options: ClickTrackerOptions): () => void {
       viewport: createViewportState(),
       x: coordinates.x,
       y: coordinates.y,
+      ...documentPosition,
       pointerType,
       selector,
     };
@@ -131,6 +163,7 @@ export function createClickTracker(options: ClickTrackerOptions): () => void {
         viewport: createViewportState(),
         x: coordinates.x,
         y: coordinates.y,
+        ...documentPosition,
         pointerType,
         selector,
         reason: "non-interactive-target",
@@ -175,6 +208,7 @@ export function createClickTracker(options: ClickTrackerOptions): () => void {
       viewport: createViewportState(),
       x: coordinates.x,
       y: coordinates.y,
+      ...documentPosition,
       pointerType,
       selector,
       clusterSize,

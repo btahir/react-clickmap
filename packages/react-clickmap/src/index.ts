@@ -25,8 +25,10 @@ export type {
   CaptureEvent,
   CaptureType,
   ClickmapAdapter,
+  CoordinateSpace,
   DeadClickEvent,
   DeviceType,
+  DocumentPosition,
   HeatmapQuery,
   PointerType,
 } from "./types";

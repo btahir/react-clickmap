@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { aggregateElementClicks, type ElementClickSummary } from "./render/element-clicks";
-import type { CaptureEvent } from "./types";
+import type { CaptureEvent, CoordinateSpace } from "./types";
 
 interface PositionedSummary extends ElementClickSummary {
   top: number;
@@ -15,9 +15,15 @@ export interface ElementClickOverlayProps {
   maxBadges?: number;
   minClicks?: number;
   className?: string;
+  /**
+   * `"viewport"` (default) pins badges over on-screen elements with a
+   * `position: fixed` layer. `"document"` places badges over elements
+   * anywhere in the document (they scroll with the page).
+   */
+  coordinateSpace?: CoordinateSpace;
 }
 
-function findVisibleElement(selector: string): Element | null {
+function findElement(selector: string, requireInViewport: boolean): Element | null {
   try {
     const element = document.querySelector(selector);
     if (!element) {
@@ -30,10 +36,11 @@ function findVisibleElement(selector: string): Element | null {
     }
 
     if (
-      rect.bottom < 0 ||
-      rect.top > window.innerHeight ||
-      rect.right < 0 ||
-      rect.left > window.innerWidth
+      requireInViewport &&
+      (rect.bottom < 0 ||
+        rect.top > window.innerHeight ||
+        rect.right < 0 ||
+        rect.left > window.innerWidth)
     ) {
       return null;
     }
@@ -48,24 +55,31 @@ function toPositionedSummaries(
   summaries: ElementClickSummary[],
   maxBadges: number,
   minClicks: number,
+  coordinateSpace: CoordinateSpace,
 ): PositionedSummary[] {
   const positioned: PositionedSummary[] = [];
+  const documentSpace = coordinateSpace === "document";
 
   for (const summary of summaries) {
     if (summary.total < minClicks) {
       continue;
     }
 
-    const element = findVisibleElement(summary.selector);
+    const element = findElement(summary.selector, !documentSpace);
     if (!element) {
       continue;
     }
 
     const rect = element.getBoundingClientRect();
+    // In document space, positions are absolute (element offset within the
+    // whole document) so badges scroll with the page. In viewport space they
+    // are viewport-relative for a fixed overlay.
+    const scrollTop = documentSpace ? window.scrollY : 0;
+    const scrollLeft = documentSpace ? window.scrollX : 0;
     positioned.push({
       ...summary,
-      top: Math.max(8, rect.top + 4),
-      left: Math.max(8, rect.left + 4),
+      top: Math.max(8, rect.top + scrollTop + 4),
+      left: Math.max(8, rect.left + scrollLeft + 4),
     });
 
     if (positioned.length >= maxBadges) {
@@ -82,24 +96,30 @@ export function ElementClickOverlay({
   maxBadges = 20,
   minClicks = 1,
   className,
+  coordinateSpace = "viewport",
 }: ElementClickOverlayProps) {
   const summaries = useMemo(() => aggregateElementClicks(events), [events]);
   const [badges, setBadges] = useState<PositionedSummary[]>([]);
+  const documentSpace = coordinateSpace === "document";
 
   useEffect(() => {
     const update = (): void => {
-      setBadges(toPositionedSummaries(summaries, maxBadges, minClicks));
+      setBadges(toPositionedSummaries(summaries, maxBadges, minClicks, coordinateSpace));
     };
 
     update();
     window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, { passive: true });
+    // In document space, badges are absolutely positioned and scroll with the
+    // page, so there's no need to reposition on every scroll frame.
+    if (!documentSpace) {
+      window.addEventListener("scroll", update, { passive: true });
+    }
 
     return () => {
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update);
     };
-  }, [maxBadges, minClicks, summaries]);
+  }, [coordinateSpace, documentSpace, maxBadges, minClicks, summaries]);
 
   if (badges.length === 0) {
     return null;
@@ -109,8 +129,8 @@ export function ElementClickOverlay({
     <div
       className={className}
       style={{
-        position: "fixed",
-        inset: 0,
+        position: documentSpace ? "absolute" : "fixed",
+        ...(documentSpace ? { top: 0, left: 0, width: "100%" } : { inset: 0 }),
         pointerEvents: "none",
         zIndex,
       }}
@@ -119,7 +139,7 @@ export function ElementClickOverlay({
         <div
           key={badge.selector}
           style={{
-            position: "fixed",
+            position: documentSpace ? "absolute" : "fixed",
             top: badge.top,
             left: badge.left,
             pointerEvents: "none",
