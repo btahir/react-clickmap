@@ -1,8 +1,8 @@
+import type { CaptureEvent } from "react-clickmap";
 import { describe, expect, it, vi } from "vitest";
 import { createPostgresAdapter } from "../src/postgres-adapter";
 import { rollupDaily } from "../src/rollup";
 import type { SqlExecutor, SqlQueryResult } from "../src/types";
-import type { CaptureEvent } from "react-clickmap";
 
 function mockEvent(overrides: Partial<CaptureEvent> = {}): CaptureEvent {
   return {
@@ -24,11 +24,16 @@ function mockEvent(overrides: Partial<CaptureEvent> = {}): CaptureEvent {
   } as CaptureEvent;
 }
 
-function createMockSql(): SqlExecutor & { calls: Array<{ text: string; params?: readonly unknown[] }> } {
+function createMockSql(): SqlExecutor & {
+  calls: Array<{ text: string; params?: readonly unknown[] }>;
+} {
   const calls: Array<{ text: string; params?: readonly unknown[] }> = [];
   return {
     calls,
-    async query<Row = unknown>(text: string, params?: readonly unknown[]): Promise<SqlQueryResult<Row>> {
+    async query<Row = unknown>(
+      text: string,
+      params?: readonly unknown[],
+    ): Promise<SqlQueryResult<Row>> {
       calls.push({ text, params });
       return { rows: [] as Row[], rowCount: 0 };
     },
@@ -144,7 +149,7 @@ describe("createPostgresAdapter", () => {
 
     expect(sql.calls).toHaveLength(1);
     expect(sql.calls[0]!.text).toContain("occurred_at >= $1");
-    expect(sql.calls[0]!.text).toContain("occurred_at <= $2");
+    expect(sql.calls[0]!.text).toContain("occurred_at < $2");
     expect(sql.calls[0]!.params).toHaveLength(2);
   });
 
@@ -180,7 +185,10 @@ describe("createPostgresAdapter", () => {
   it("deleteEvents applies filters and returns count", async () => {
     const calls: Array<{ text: string; params?: readonly unknown[] }> = [];
     const sql: SqlExecutor = {
-      async query<Row = unknown>(text: string, params?: readonly unknown[]): Promise<SqlQueryResult<Row>> {
+      async query<Row = unknown>(
+        text: string,
+        params?: readonly unknown[],
+      ): Promise<SqlQueryResult<Row>> {
         calls.push({ text, params });
         return { rows: [] as Row[], rowCount: 3 };
       },
@@ -325,7 +333,9 @@ describe("loadAggregated", () => {
 
   it("aggregates viewport coordinates from raw events for non-day-aligned ranges", async () => {
     const sql = createRecordingSql((text) =>
-      text.includes("SUM(CASE") ? [{ x: 50, y: 25, value: 3 }] : [{ width: 1440, height: 900 }],
+      text.includes("SUM(CASE")
+        ? [{ x: 50, y: 25, value: 3 }]
+        : [{ width: 1440, height: 900, total: 3 }],
     );
     const adapter = createPostgresAdapter({ sql });
 
@@ -356,9 +366,9 @@ describe("loadAggregated", () => {
     const sql = createRecordingSql((text) =>
       text.includes("x_bucket") && text.includes("SUM(value)")
         ? [{ x: 40, y: 10, value: 7 }]
-        : [{ width: 1440, height: 900 }],
+        : [{ width: 1440, height: 900, total: 3, intensity: 7 }],
     );
-    const adapter = createPostgresAdapter({ sql });
+    const adapter = createPostgresAdapter({ sql, preferDailyBins: true });
 
     const payload = await adapter.loadAggregated!({
       from: dayMs,
@@ -476,7 +486,7 @@ describe("rollupDaily", () => {
     expect(insertBins!.text).toContain("route_key = $4");
   });
 
-  it("acquires a transaction-scoped advisory lock before deleting/inserting, keyed by day+scope", async () => {
+  it("acquires a transaction-scoped advisory lock before deleting/inserting, shared by overlapping scopes on the same day", async () => {
     const sql = createRollupSql();
 
     await rollupDaily(sql, { day: "2026-07-01", routeKey: "/pricing" });
@@ -491,7 +501,7 @@ describe("rollupDaily", () => {
     expect(lockIndex).toBeGreaterThan(-1);
     expect(lockIndex).toBeLessThan(firstDeleteIndex);
     expect(sql.calls[lockIndex]!.params).toEqual([
-      "clickmap_heatmap_bins_daily:clickmap_element_clicks_daily:2026-07-01:/pricing:",
+      "clickmap_heatmap_bins_daily:clickmap_element_clicks_daily:2026-07-01",
     ]);
   });
 

@@ -1,4 +1,5 @@
 import { aggregateElementClicks, type CaptureEvent, type DeviceType } from "react-clickmap";
+import { scrollReach } from "react-clickmap/contracts";
 
 export interface DashboardTimelineBucket {
   hour: string;
@@ -61,8 +62,6 @@ export function buildDashboardSnapshot(events: CaptureEvent[]): DashboardSnapsho
   let deadClicks = 0;
   let scrollEvents = 0;
   let pointerMoves = 0;
-  let scrollDepthTotal = 0;
-  let scrollDepthCount = 0;
 
   const sessionIds = new Set<string>();
   const userIds = new Set<string>();
@@ -113,8 +112,6 @@ export function buildDashboardSnapshot(events: CaptureEvent[]): DashboardSnapsho
         break;
       case "scroll":
         scrollEvents += 1;
-        scrollDepthTotal += event.maxDepth;
-        scrollDepthCount += 1;
         break;
       case "pointer-move":
         pointerMoves += 1;
@@ -160,7 +157,7 @@ export function buildDashboardSnapshot(events: CaptureEvent[]): DashboardSnapsho
     pointerMoves,
     uniqueSessions: sessionIds.size,
     uniqueUsers: userIds.size,
-    averageScrollDepth: scrollDepthCount > 0 ? scrollDepthTotal / scrollDepthCount : 0,
+    averageScrollDepth: scrollReach(events).average,
     rageRate: totalClickLike > 0 ? rageClicks / totalClickLike : 0,
     deadRate: totalClickLike > 0 ? deadClicks / totalClickLike : 0,
     deviceMix,

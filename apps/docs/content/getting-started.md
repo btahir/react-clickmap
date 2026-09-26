@@ -1,107 +1,86 @@
 # Getting Started
 
+Capture one real interaction, inspect it, and export useful evidence.
+
 ## Install
 
-```bash
-npm install react-clickmap
+```sh
+npm install react-clickmap @react-clickmap/dashboard
 ```
 
-## Quick setup
-
-Wrap your app with `ClickmapProvider` and drop a `Heatmap` overlay wherever you want to visualize behavior:
+The Studio release is prepared in this branch. Until published, use the workspace instructions below; registry versions may not include Studio yet.
 
 ```tsx
-import { ClickmapProvider, Heatmap, fetchAdapter } from "react-clickmap";
+'use client';
+import { ClickmapProvider, memoryAdapter } from 'react-clickmap';
+import { ClickmapStudio } from '@react-clickmap/dashboard';
 
-// The adapter tells react-clickmap where to send and load events.
-// fetchAdapter sends events to your own API endpoint via HTTP.
-const adapter = fetchAdapter({ endpoint: "/api/clickmap" });
+// Module scope keeps the adapter stable. Memory is a local demo, not durable storage.
+const adapter = memoryAdapter();
 
-export function App() {
+export function Demo() {
   return (
-    <ClickmapProvider
-      adapter={adapter}
-      projectId="my-app"
-      capture={["click", "scroll", "rage-click", "dead-click"]}
-      sampleRate={0.25}
-      respectDoNotTrack
-      respectGlobalPrivacyControl
-    >
-      <YourApp />
-
-      {/* Show a heatmap overlay for the /pricing page */}
-      <Heatmap adapter={adapter} page="/pricing" type="heatmap" />
+    <ClickmapProvider adapter={adapter} projectId="demo" layoutId="pricing-v1">
+      <main>
+        <button data-clickmap-id="start-project">Start a project</button>
+      </main>
+      <ClickmapStudio adapter={adapter} projectId="demo" layoutId="pricing-v1" />
     </ClickmapProvider>
   );
 }
 ```
 
-That's all the client-side code you need. Events are automatically captured, batched, and sent to your endpoint.
+Studio provides cohort filters, first-event diagnostics, element inspection, cumulative scroll reach, real heatmap overlays, JSON/Markdown/CSV export, overlay PNG, and local evidence import. It is a separate package; it never enters the collector bundle unless you import it. Put production Studio behind your application's admin authorization.
 
-## What happens under the hood
+## Persistence and access
 
-1. **Capture** — Browser listeners detect clicks, scrolls, pointer movement, rage clicks, and dead clicks. Each event is normalized with viewport-relative coordinates, device type, and a unique event ID.
-2. **Batch** — Events are queued in an internal batcher. The batcher flushes to your adapter every 5 seconds, when 100 events accumulate, or when the user navigates away (via `pagehide`/`visibilitychange`).
-3. **Persist** — Your adapter's `save()` method receives the batch. With `fetchAdapter`, this is an HTTP POST to your endpoint. You handle storage however you like.
-4. **Render** — The `<Heatmap>` component calls your adapter's `load()` method to fetch events, then renders a GPU-accelerated overlay using WebGL (with Canvas fallback).
+Use `fetchAdapter` to send events to your own endpoint. Public ingestion and authorized analytics reads/deletes have different access requirements. The Next.js server entry is **`@react-clickmap/next/server`**, with mandatory server-owned `projectId`; reads/deletes fail closed without an authorization callback. Ingestion validates event fields and byte/batch limits. Origin checks supplement authorization; configure your edge/server rate limits for a public deployment.
 
-## Capture modes
+[Complete Next.js recipe](https://react-clickmap.vercel.app/docs/guides/nextjs-app-router) · [Persistence](https://react-clickmap.vercel.app/docs/guides/persistence)
 
-| Mode | What it captures |
-|---|---|
-| `click` | Every click with viewport-relative `x`/`y` coordinates and pointer type |
-| `dead-click` | Clicks on non-interactive elements (e.g., plain text, images) — signals layout confusion |
-| `rage-click` | 3+ rapid clicks within a small radius — signals user frustration |
-| `scroll` | Current scroll depth and maximum scroll depth reached |
-| `pointer-move` | Mouse/touch movement coordinates — used for attention heatmaps |
+| Package | Role |
+| --- | --- |
+| `react-clickmap` | React capture, renderers, memory/localStorage/fetch adapters |
+| `react-clickmap/contracts` | Pure Node/browser validation, query matching, evidence and deterministic reports |
+| `@react-clickmap/dashboard` | Optional `ClickmapStudio` and embeddable dashboard |
+| `@react-clickmap/next` | Explicit `/server` and `/client` entries |
+| `@react-clickmap/postgres` | Durable storage, checked-out pool connections, scoped queries, rollups |
+| `@react-clickmap/supabase` | REST storage with verified pagination; aggregation is client-side |
+| `@react-clickmap/cli` | Loopback collector, evidence validation/reporting, local retention tools |
 
-Each mode is gated independently: `capture={['dead-click']}` records dead clicks without also storing every plain `click`. Include `'click'` explicitly if you want raw clicks recorded alongside `dead-click`/`rage-click`.
+## Privacy is a configuration, not a certification
 
-Enable only the modes you need:
+DNT and GPC disable capture by default. Configure `consentRequired` and `hasConsent` for your application. Query strings are excluded from captured route keys. Generated selectors omit DOM IDs/classes; use deliberate `data-clickmap-id` values. Input/contenteditable selectors are masked by default, and `data-clickmap-ignore` excludes a subtree. `normalizeRoute` can replace identifier-bearing path segments; `beforeCapture` can redact or discard an event before transport. Layout IDs are application-controlled.
 
-```tsx
-<ClickmapProvider
-  adapter={adapter}
-  capture={["click", "scroll"]}  // Only track clicks and scroll depth
->
+Events still contain pseudonymous session IDs, paths, coordinates, and optional user IDs. Masking a selector does not erase coordinates. Avoid sensitive content in paths and stable IDs. Cookie-free collection does not establish consent or legal compliance. Inspect payloads and your own deployment requirements.
+
+## Read metrics correctly
+
+Observed sessions are sessions with captured interactions, **not all visitors**. Scroll reach counts one maximum per project/session/route/layout; repeated visits in the same session are combined. Dead/rage clicks are heuristics. Event shares are not conversion or failure rates. Studio warns about small samples and bounded datasets. Overlay coordinates cannot reconstruct an older or differently sized page; select a compatible cohort.
+
+## Local evidence tools
+
+```sh
+npx @react-clickmap/cli --help
+react-clickmap serve --project demo --origin http://localhost:3000
+react-clickmap validate --file clickmap-evidence.json
+react-clickmap report --file clickmap-evidence.json --format markdown
+react-clickmap doctor --data .react-clickmap/events.json
+react-clickmap prune --data .react-clickmap/events.json --before 2026-01-01
+# Inspect the dry-run count, then add --apply to prune.
 ```
 
-## Provider props
+The collector binds to loopback, prints a session token for reads/deletes, and writes atomically. It is not a multi-process production database. CLI reports do not call an AI model. Exported IDs are pseudonymized and query strings/user IDs removed; application paths and target names still need review before sharing. The agent skill is shipped in the core package at `skills/clickmap/SKILL.md`.
 
-| Prop | Type | Default | Description |
-|---|---|---|---|
-| `adapter` | `ClickmapAdapter` | required | Where to save and load events |
-| `projectId` | `string` | `"default"` | Scopes events by project |
-| `userId` | `string` | — | Optional user identifier for per-user queries |
-| `capture` | `CaptureType[]` | `["click", "scroll"]` | Which event types to capture |
-| `sampleRate` | `number` | `1` | Fraction of sessions to capture (0–1) |
-| `flushIntervalMs` | `number` | `5000` | How often to flush the event queue |
-| `maxBatchSize` | `number` | `100` | Max events per batch before flushing early |
-| `respectDoNotTrack` | `boolean` | `false` | Honor the browser's Do Not Track signal |
-| `respectGlobalPrivacyControl` | `boolean` | `false` | Honor the Global Privacy Control signal |
-| `consentRequired` | `boolean` | `false` | Require explicit consent before capturing |
-| `hasConsent` | `boolean` | — | Current consent state (used with `consentRequired`) |
-| `maskSelectors` | `string[]` | `[]` | CSS selectors for elements to mask in events |
-| `ignoreSelectors` | `string[]` | `[]` | CSS selectors for elements to exclude entirely |
+## Run the workspace
 
-## Choosing an adapter
+Use Node 22+ and pnpm 9.
 
-react-clickmap is storage-agnostic. Pick the adapter that matches your stack:
+```sh
+pnpm install --frozen-lockfile
+pnpm --filter react-clickmap build
+pnpm --filter @react-clickmap/dashboard build
+pnpm --filter @react-clickmap/docs dev
+```
 
-| Adapter | Install | Use case |
-|---|---|---|
-| `memoryAdapter()` | built-in | Development and testing — events live in memory |
-| `localStorageAdapter()` | built-in | Browser-only prototyping — events persist in localStorage |
-| `fetchAdapter()` | built-in | Production — sends events to your HTTP endpoint |
-| `createPostgresAdapter()` | `npm install @react-clickmap/postgres` | Direct Postgres persistence with parameterized queries |
-| `createSupabaseAdapter()` | `npm install @react-clickmap/supabase` | Supabase REST API — no backend code needed |
-
-See the [Persistence Guide](/docs/guides/persistence) for detailed setup instructions with each adapter.
-
-## Next steps
-
-- [Persistence Guide](/docs/guides/persistence) — Hook up a database (Postgres, Supabase, or custom)
-- [Next.js App Router](/docs/guides/nextjs-app-router) — Set up with the App Router
-- [Privacy & Consent](/docs/guides/privacy-consent) — Configure consent flows and data minimization
-- [Components API](/docs/api/components) — Full prop reference for all components
-- [Architecture](/docs/architecture) — How the capture and render pipelines work
+The demo explicitly labels synthetic data and lets you capture only your own tab into memory. Reloading clears it. No telemetry is sent to the maintainer.

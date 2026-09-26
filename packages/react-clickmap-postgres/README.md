@@ -39,7 +39,7 @@ The adapter implements `save`, `load`, `deleteEvents`, and `loadAggregated`.
 
 - `save()` batches events into parameterized multi-row `INSERT`s and wraps them in a transaction when a flush needs more than one statement.
 - Inserts are idempotent via `ON CONFLICT (event_id) DO NOTHING`.
-- `loadAggregated()` bins coordinates in SQL, so `supportsAggregation` is honestly `true`. It reads pre-computed daily bins (see below) for day-aligned ranges and falls back to aggregating raw events otherwise. Pass `coordinateSpace: "document"` in the query to aggregate the full-page (document-relative) heatmap; the default is `"viewport"`.
+- `loadAggregated()` bins coordinates in SQL, so `supportsAggregation` is honestly `true`. With `preferDailyBins: true`, it reads pre-computed daily bins (see below) for day-aligned ranges and falls back to aggregating raw events otherwise. Pass `coordinateSpace: "document"` in the query to aggregate the full-page (document-relative) heatmap; the default is `"viewport"`.
 - This package doesn't depend on `react-clickmap` at runtime — it's a `peerDependency` used only for types.
 
 ### Document-relative coordinates
@@ -98,3 +98,13 @@ SELECT cron.schedule('clickmap-rollup', '0 1 * * *', $$ SELECT run_clickmap_roll
 ```
 
 Backfilling history is just a loop over days calling `rollupDaily({ day })`.
+
+## Studio release: consistency and pool safety
+
+`Pool` objects with `connect()` now use one checked-out connection per operation; transactional inserts and rollups no longer issue BEGIN/COMMIT across pool connections. Pass a pool directly, or a single dedicated client implementing query.
+
+Raw SQL aggregation is the default. Set `preferDailyBins:true` only for complete day-aligned rollups you manage; missing, partial, or stale weighted coverage falls back to raw events. Deleting raw events invalidates the affected projects’ heatmap/element rollups in the same SQL statement; rerun rollups to rebuild. Install the complete `POSTGRES_INIT_SQL` schema including rollup tables. Weighted bin intensity is distinct from `totalEvents`, which counts coordinate-bearing raw records. Layout IDs are stored in payload JSON; viewport/layout queries bypass rollups.
+
+## Support this project
+
+[React Maintainer Support](https://react-tourlight.vercel.app/support) helps maintain Tourlight, Kino, Clickmap, and Redact. All features remain MIT licensed; support is optional, with recurring and one-time options.

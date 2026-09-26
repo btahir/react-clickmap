@@ -49,6 +49,14 @@ export async function rollupDaily(
   sql: SqlExecutor,
   options: RollupOptions = {},
 ): Promise<RollupResult> {
+  if (sql.connect) {
+    const client = await sql.connect();
+    try {
+      return await rollupDaily({ query: client.query.bind(client) }, options);
+    } finally {
+      client.release();
+    }
+  }
   const eventsTable = assertTableName(options.tableName ?? "clickmap_events");
   const binsTable = assertTableName(options.binsTableName ?? "clickmap_heatmap_bins_daily");
   const elementsTable = assertTableName(
@@ -129,7 +137,7 @@ export async function rollupDaily(
     // The lock is scoped to this rollup's tables + day + scope so unrelated
     // days/scopes/tables never contend, and it is released automatically on
     // COMMIT/ROLLBACK since it's an xact-level advisory lock.
-    const lockKey = `${binsTable}:${elementsTable}:${dayIso}:${options.routeKey ?? ""}:${options.projectId ?? ""}`;
+    const lockKey = `${binsTable}:${elementsTable}:${dayIso}`;
     await sql.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [lockKey]);
 
     await sql.query(`DELETE FROM ${binsTable} WHERE day = $1::date${deleteScopeSql}`, [

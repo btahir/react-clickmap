@@ -3,21 +3,21 @@
 /* ================================================================== */
 
 :root {
-  --bg: #050a14;
-  --bg-warm: #070d1a;
-  --panel: #0a1128;
-  --panel-soft: #0d1630;
-  --panel-hover: #111d3e;
-  --surface: #141f42;
-  --text: #e8efff;
-  --text-secondary: #c0d0f0;
-  --muted: #7e96c8;
-  --accent: #5eead4;
+  --bg: #f7f7ef;
+  --bg-warm: #f1f3e9;
+  --panel: #fffef8;
+  --panel-soft: #edf1e6;
+  --panel-hover: #e3e9dc;
+  --surface: #e0e8d8;
+  --text: #18382e;
+  --text-secondary: #345744;
+  --muted: #62745e;
+  --accent: #356c49;
   --accent-dim: rgba(94, 234, 212, 0.15);
-  --accent-2: #60a5fa;
+  --accent-2: #3f715e;
   --accent-2-dim: rgba(96, 165, 250, 0.12);
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
+  --border: rgba(32, 65, 44, 0.13);
+  --border-strong: rgba(32, 65, 44, 0.24);
   --radius: 10px;
   --radius-lg: 14px;
   --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
@@ -102,7 +102,9 @@ a {
   color: var(--muted);
   font-size: 0.88rem;
   font-weight: 500;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 
 .nav-link:hover {
@@ -206,7 +208,10 @@ a {
   background: var(--panel);
   border-radius: var(--radius-lg);
   padding: 20px;
-  transition: border-color 0.2s, background 0.2s, transform 0.2s;
+  transition:
+    border-color 0.2s,
+    background 0.2s,
+    transform 0.2s;
 }
 
 .docs-card:hover {
@@ -236,7 +241,9 @@ a {
   right: 18px;
   color: var(--muted);
   font-size: 1rem;
-  transition: color 0.2s, transform 0.2s;
+  transition:
+    color 0.2s,
+    transform 0.2s;
 }
 
 .docs-card:hover .card-arrow {
@@ -289,7 +296,9 @@ a {
   color: var(--text-secondary);
   font-size: 0.88rem;
   font-weight: 400;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
   line-height: 1.4;
 }
 
@@ -632,12 +641,14 @@ a {
   background: transparent;
   color: var(--muted);
   cursor: pointer;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 
 .copy-btn:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(32, 65, 44, 0.13);
 }
 
 .code-block pre {
@@ -780,5 +791,427 @@ a {
 @media (max-width: 480px) {
   .docs-card-grid {
     grid-template-columns: 1fr;
+  }
+}
+/* Clickmap: a calm, practical inspection desk. */
+body {
+  margin: 0;
+  background: #f7f7ef;
+  color: #18382e;
+  font-family: Arial, Helvetica, sans-serif;
+}
+a {
+  color: inherit;
+}
+.site-nav {
+  max-width: 1280px;
+  margin: auto;
+  padding: 28px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #d3dbcf;
+}
+.wordmark {
+  font-weight: 750;
+  font-size: 23px;
+  letter-spacing: -1px;
+  text-decoration: none;
+}
+.wordmark-tag {
+  font-size: 11px;
+  letter-spacing: 0;
+  font-weight: 400;
+  margin-left: 10px;
+  color: #52675b;
+}
+.site-nav > div {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  font-size: 13px;
+}
+.site-nav a {
+  text-decoration: none;
+}
+.nav-cta {
+  border: 1px solid #aabcae;
+  padding: 10px 15px;
+  border-radius: 5px;
+}
+.hero {
+  max-width: 1200px;
+  margin: auto;
+  padding: 100px 40px 64px;
+}
+.kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #536c5c;
+}
+.hero h1 {
+  font-size: clamp(58px, 7.5vw, 108px);
+  font-weight: 550;
+  line-height: 0.98;
+  letter-spacing: -6px;
+  margin: 30px 0;
+}
+.hero h1 em {
+  font-family: Georgia, serif;
+  font-weight: 400;
+  color: #788b64;
+}
+.hero-copy {
+  font-size: 20px;
+  line-height: 1.6;
+  color: #52675b;
+  max-width: 760px;
+}
+.hero-actions {
+  display: flex;
+  gap: 26px;
+  align-items: center;
+  margin: 30px 0;
+}
+.hero-actions a {
+  text-decoration: none;
+  font-size: 14px;
+}
+.primary {
+  background: #244d38;
+  color: white;
+  padding: 16px 24px;
+  border-radius: 5px;
+  display: inline-flex;
+  gap: 44px;
+}
+.install {
+  display: grid;
+  gap: 10px;
+  margin-top: 32px;
+}
+.install code {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.install span {
+  font-size: 12px;
+  color: #697d6d;
+}
+.trust-line {
+  max-width: 1120px;
+  margin: 0 auto 65px;
+  display: flex;
+  gap: 40px;
+  padding: 22px 0;
+  border-top: 1px solid #d3dbcf;
+  border-bottom: 1px solid #d3dbcf;
+  font-size: 12px;
+  color: #536c5c;
+}
+.demo-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  scroll-margin-top: 25px;
+}
+.demo-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 20px;
+}
+.demo-caption h2 {
+  font-size: 35px;
+  font-weight: 500;
+  letter-spacing: -1.5px;
+  line-height: 1.2;
+}
+.demo-toggle {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.demo-toggle button {
+  font:
+    12px Arial,
+    sans-serif;
+  padding: 10px 12px;
+  background: transparent;
+  border: 1px solid #acbaac;
+  border-radius: 5px;
+  cursor: pointer;
+  color: #284936;
+}
+.demo-toggle button[aria-pressed="true"] {
+  background: #284936;
+  color: white;
+}
+.demo-disclosure {
+  font-size: 12px;
+  color: #62705e;
+  margin: 12px 0 25px;
+}
+.fixture {
+  background: #e4e7da;
+  border: 1px solid #cad2c3;
+  border-radius: 15px;
+  margin-bottom: 24px;
+  padding: 48px;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 48px;
+}
+.fixture-brand {
+  font-size: 11px;
+  letter-spacing: 3px;
+  font-weight: bold;
+}
+.fixture h3 {
+  font-family: Georgia, serif;
+  font-weight: 400;
+  font-size: 37px;
+  line-height: 1.12;
+  margin: 22px 0;
+}
+.fixture p {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.fixture button {
+  background: #304732;
+  color: #fff;
+  padding: 14px 20px;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.fixture button span {
+  margin-left: 35px;
+}
+.fixture-plans {
+  border: 1px solid #b8c7b0;
+  border-radius: 12px;
+  padding: 25px;
+  background: #f1f2e8;
+}
+.fixture-plans > strong {
+  display: block;
+  font-family: Georgia, serif;
+  font-size: 48px;
+  font-weight: 400;
+  margin: 12px 0;
+}
+.fixture-plans strong span {
+  font:
+    12px Arial,
+    sans-serif;
+}
+.fixture-plans ul {
+  padding-left: 17px;
+  font-size: 13px;
+  line-height: 2;
+}
+.fixture-plans small {
+  font-size: 11px;
+  line-height: 1.6;
+  color: #53664f;
+}
+.fake-link {
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: bold;
+}
+.workflow {
+  max-width: 1120px;
+  margin: 110px auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  padding: 0 24px;
+}
+.workflow h2,
+.ownership h2 {
+  font-size: 43px;
+  line-height: 1.12;
+  letter-spacing: -2px;
+  font-weight: 500;
+}
+.workflow p,
+.ownership p {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #5c6b5a;
+}
+.workflow ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.workflow li {
+  display: flex;
+  gap: 22px;
+  border-bottom: 1px solid #d3dbcf;
+  padding: 23px 0;
+}
+.workflow li > span {
+  font-size: 12px;
+  padding-top: 3px;
+  color: #859079;
+}
+.workflow h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+.ownership {
+  background: #e9ede1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  max-width: 1120px;
+  margin: auto;
+  padding: 50px;
+  border-radius: 15px;
+}
+.ownership pre {
+  background: #f9faf2;
+  padding: 26px;
+  border: 1px solid #cfd9c6;
+  border-radius: 7px;
+  font: 13px / 1.7 monospace;
+  overflow: auto;
+}
+.ownership a {
+  font-size: 13px;
+}
+.honesty {
+  max-width: 750px;
+  text-align: center;
+  margin: 100px auto;
+  padding: 0 25px;
+}
+.honesty h2 {
+  font-family: Georgia, serif;
+  font-size: 35px;
+  font-weight: 400;
+}
+.honesty p {
+  font-size: 15px;
+  line-height: 1.9;
+  color: #62705e;
+}
+.honesty a {
+  font-size: 13px;
+}
+.site-footer {
+  border-top: 1px solid #ccd6c5;
+  padding: 35px 40px;
+  max-width: 1280px;
+  margin: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  font-size: 12px;
+}
+.site-footer p {
+  color: #66725d;
+}
+.site-footer > div {
+  display: flex;
+  gap: 20px;
+}
+:focus-visible {
+  outline: 3px solid #bd713c;
+  outline-offset: 4px;
+}
+.docs-shell {
+  color: #18382e;
+  background: #f7f7ef;
+}
+.docs-nav,
+.docs-sidebar,
+.docs-content,
+.docs-index {
+  background: transparent;
+}
+.docs-content a {
+  color: #356c49;
+}
+@media (max-width: 760px) {
+  .site-nav {
+    padding: 20px;
+  }
+  .site-nav > div {
+    gap: 15px;
+  }
+  .nav-cta,
+  .wordmark-tag {
+    display: none;
+  }
+  .hero {
+    padding: 65px 24px 40px;
+  }
+  .hero h1 {
+    letter-spacing: -3px;
+  }
+  .hero-copy {
+    font-size: 17px;
+  }
+  .trust-line {
+    margin: 0 24px 40px;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .demo-caption {
+    display: block;
+  }
+  .demo-caption h2 {
+    font-size: 28px;
+  }
+  .fixture {
+    padding: 24px;
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .fixture h3 {
+    font-size: 30px;
+  }
+  .workflow {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin: 65px auto;
+  }
+  .ownership {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 25px;
+    margin: 0 24px;
+  }
+  .site-footer {
+    display: block;
+  }
+  .site-footer > div {
+    margin-top: 20px;
+  }
+  .hero-actions {
+    gap: 18px;
+  }
+  .primary {
+    gap: 20px;
+  }
+  .cm-studio {
+    max-width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
   }
 }

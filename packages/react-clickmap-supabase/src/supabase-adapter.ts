@@ -74,13 +74,16 @@ function toRow(event: CaptureEvent): Record<string, unknown> {
     max_depth_pct: event.type === "scroll" ? event.maxDepth : null,
     is_rage_click: event.type === "rage-click",
     is_dead_click: event.type === "dead-click",
-    payload_jsonb: payload,
+    payload_jsonb: { ...payload, ...(event.layoutId ? { layoutId: event.layoutId } : {}) },
     schema_version: event.schemaVersion,
   };
 }
 
 function fromRow(row: SupabaseEventRow): CaptureEvent {
   const base = {
+    ...(typeof row.payload_jsonb?.layoutId === "string"
+      ? { layoutId: row.payload_jsonb.layoutId }
+      : {}),
     schemaVersion: 1 as const,
     eventVersion: 1 as const,
     eventId: row.event_id,
@@ -207,8 +210,13 @@ function appendFilters(searchParams: URLSearchParams, query: HeatmapQuery): void
   }
 
   if (typeof query.to === "number") {
-    searchParams.append("occurred_at", `lte.${new Date(query.to).toISOString()}`);
+    searchParams.append("occurred_at", `lt.${new Date(query.to).toISOString()}`);
   }
+  if (query.layoutId) searchParams.set("payload_jsonb->>layoutId", `eq.${query.layoutId}`);
+  if (query.viewportMin !== undefined)
+    searchParams.append("viewport_w", `gte.${query.viewportMin}`);
+  if (query.viewportMax !== undefined)
+    searchParams.append("viewport_w", `lte.${query.viewportMax}`);
 }
 
 // PostgREST (and most hosting providers fronting it) reject overly large
@@ -269,23 +277,35 @@ export function createSupabaseAdapter(options: SupabaseAdapterOptions): Clickmap
     async load(query: HeatmapQuery): Promise<CaptureEvent[]> {
       const searchParams = new URLSearchParams();
       searchParams.set("select", "*");
-      searchParams.set("order", "occurred_at.asc");
+      searchParams.set("order", "occurred_at.asc,event_id.asc");
       if (typeof query.limit === "number" && query.limit > 0) {
         searchParams.set("limit", String(query.limit));
       }
       appendFilters(searchParams, query);
 
-      const response = await fetchImpl(`${baseUrl}/rest/v1/${table}?${searchParams.toString()}`, {
-        method: "GET",
-        headers,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to load Supabase clickmap events. Status: ${response.status}`);
+      const cap = Math.min(query.limit ?? 100000, options.maxReadEvents ?? 100000);
+      const all: SupabaseEventRow[] = [];
+      for (let offset = 0; offset <= cap; ) {
+        searchParams.set("offset", String(offset));
+        searchParams.set("limit", String(Math.min(1000, cap - offset + 1)));
+        const response = await fetchImpl(`${baseUrl}/rest/v1/${table}?${searchParams}`, {
+          method: "GET",
+          headers: { ...headers, Prefer: "count=exact" },
+        });
+        if (!response.ok)
+          throw new Error(`Failed to load Supabase clickmap events. Status: ${response.status}`);
+        const rows = (await response.json()) as SupabaseEventRow[];
+        all.push(...rows);
+        offset += rows.length;
+        const range = response.headers.get("content-range");
+        const total = range ? Number(range.split("/")[1]) : NaN;
+        if (all.length > cap) throw new Error("Clickmap query exceeds limit; narrow the cohort");
+        if (Number.isFinite(total) && offset >= total) return all.map(fromRow);
+        if (!rows.length)
+          throw new Error("Incomplete Clickmap query: empty page before verified total");
+        if (!range) throw new Error("Cannot verify pagination: missing Content-Range");
       }
-
-      const rows = (await response.json()) as SupabaseEventRow[];
-      return rows.map((row) => fromRow(row));
+      throw new Error("Incomplete Clickmap query");
     },
 
     async deleteEvents(query: HeatmapQuery): Promise<number> {

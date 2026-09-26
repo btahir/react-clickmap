@@ -14,7 +14,7 @@ describe("route tracking", () => {
     window.dispatchEvent(new PopStateEvent("popstate"));
 
     expect(onChange).toHaveBeenCalledTimes(2);
-    expect(getCurrentRouteKey()).toBe("/pricing?plan=pro");
+    expect(getCurrentRouteKey()).toBe("/pricing");
 
     unsubscribe();
   });

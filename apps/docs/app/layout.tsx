@@ -7,19 +7,20 @@ const SITE_URL = "https://react-clickmap.vercel.app";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "react-clickmap — Privacy-First Heatmaps for React",
+    default: "react-clickmap — Self-owned React heatmaps and UX diagnostics",
     template: "%s | react-clickmap",
   },
+  alternates: { canonical: "/" },
   description:
-    "Self-hosted, open-source heatmap analytics for React. Track clicks, rage clicks, scroll depth, and attention — zero cookies, no third-party scripts, fully GDPR-ready.",
+    "Self-hosted, open-source heatmap analytics for React. Track clicks, rage clicks, scroll depth, and attention — zero cookies, no third-party scripts, explicit privacy controls.",
   openGraph: {
     type: "website",
     locale: "en_US",
     url: SITE_URL,
     siteName: "react-clickmap",
-    title: "react-clickmap — Privacy-First Heatmaps for React",
+    title: "react-clickmap — Self-owned React heatmaps and UX diagnostics",
     description:
-      "Self-hosted, open-source heatmap analytics for React. Track clicks, rage clicks, scroll depth, and attention — zero cookies, no third-party scripts, fully GDPR-ready.",
+      "Self-hosted, open-source heatmap analytics for React. Track clicks, rage clicks, scroll depth, and attention — zero cookies, no third-party scripts, explicit privacy controls.",
     images: [
       {
         url: "/og.png",
@@ -31,9 +32,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "react-clickmap — Privacy-First Heatmaps for React",
+    title: "react-clickmap — Self-owned React heatmaps and UX diagnostics",
     description:
-      "Self-hosted, open-source heatmap analytics for React. Track clicks, rage clicks, scroll depth, and attention — zero cookies, no third-party scripts, fully GDPR-ready.",
+      "Self-hosted, open-source heatmap analytics for React. Track clicks, rage clicks, scroll depth, and attention — zero cookies, no third-party scripts, explicit privacy controls.",
     images: ["/og.png"],
   },
   icons: {

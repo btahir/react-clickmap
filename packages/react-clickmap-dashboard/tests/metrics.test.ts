@@ -1,8 +1,10 @@
+import type { CaptureEvent } from "react-clickmap";
 import { describe, expect, it } from "vitest";
 import { buildDashboardSnapshot } from "../src/metrics";
-import type { CaptureEvent } from "react-clickmap";
 
-function makeEvent(overrides: Partial<CaptureEvent> & { type: CaptureEvent["type"] }): CaptureEvent {
+function makeEvent(
+  overrides: Partial<CaptureEvent> & { type: CaptureEvent["type"] },
+): CaptureEvent {
   const base = {
     schemaVersion: 1 as const,
     eventVersion: 1 as const,
@@ -20,13 +22,46 @@ function makeEvent(overrides: Partial<CaptureEvent> & { type: CaptureEvent["type
     case "scroll":
       return { ...base, type: "scroll", depth: 50, maxDepth: 75, ...overrides } as CaptureEvent;
     case "pointer-move":
-      return { ...base, type: "pointer-move", x: 50, y: 50, pointerType: "mouse" as const, ...overrides } as CaptureEvent;
+      return {
+        ...base,
+        type: "pointer-move",
+        x: 50,
+        y: 50,
+        pointerType: "mouse" as const,
+        ...overrides,
+      } as CaptureEvent;
     case "rage-click":
-      return { ...base, type: "rage-click", x: 50, y: 50, pointerType: "mouse" as const, selector: "button", clusterSize: 4, windowMs: 500, radiusPx: 30, ...overrides } as CaptureEvent;
+      return {
+        ...base,
+        type: "rage-click",
+        x: 50,
+        y: 50,
+        pointerType: "mouse" as const,
+        selector: "button",
+        clusterSize: 4,
+        windowMs: 500,
+        radiusPx: 30,
+        ...overrides,
+      } as CaptureEvent;
     case "dead-click":
-      return { ...base, type: "dead-click", x: 50, y: 50, pointerType: "mouse" as const, reason: "non-interactive-target" as const, ...overrides } as CaptureEvent;
+      return {
+        ...base,
+        type: "dead-click",
+        x: 50,
+        y: 50,
+        pointerType: "mouse" as const,
+        reason: "non-interactive-target" as const,
+        ...overrides,
+      } as CaptureEvent;
     default:
-      return { ...base, type: "click", x: 50, y: 50, pointerType: "mouse" as const, ...overrides } as CaptureEvent;
+      return {
+        ...base,
+        type: "click",
+        x: 50,
+        y: 50,
+        pointerType: "mouse" as const,
+        ...overrides,
+      } as CaptureEvent;
   }
 }
 
@@ -101,7 +136,7 @@ describe("buildDashboardSnapshot", () => {
 
     const snapshot = buildDashboardSnapshot(events);
 
-    expect(snapshot.averageScrollDepth).toBeCloseTo(80);
+    expect(snapshot.averageScrollDepth).toBeCloseTo(100);
   });
 
   it("groups events into device mix", () => {

@@ -1,6 +1,6 @@
 {
   "name": "@react-clickmap/postgres",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Postgres persistence adapter and SQL schema for react-clickmap.",
   "license": "MIT",
   "type": "module",
@@ -22,7 +22,8 @@
     "dist",
     "sql",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "sideEffects": false,
   "keywords": [
@@ -33,7 +34,7 @@
     "self-hosted"
   ],
   "peerDependencies": {
-    "react-clickmap": ">=0.3.0"
+    "react-clickmap": ">=0.4.0"
   },
   "peerDependenciesMeta": {
     "react-clickmap": {
@@ -53,5 +54,18 @@
     "tsup": "^8.5.0",
     "typescript": "^5.9.2",
     "vitest": "^4.0.7"
+  },
+  "homepage": "https://react-clickmap.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/btahir/react-clickmap.git",
+    "directory": "packages/react-clickmap-postgres"
+  },
+  "bugs": {
+    "url": "https://github.com/btahir/react-clickmap/issues"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://react-tourlight.vercel.app/support"
   }
 }

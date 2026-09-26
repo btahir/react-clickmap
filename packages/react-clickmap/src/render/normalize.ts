@@ -1,3 +1,4 @@
+import { scrollReach } from "../contracts";
 import type { CaptureEvent, CoordinateSpace } from "../types";
 import type { RenderPoint } from "./types";
 
@@ -64,26 +65,5 @@ export function toRenderPoints(
 export function summarizeScrollDepth(
   events: CaptureEvent[],
 ): Array<{ depth: number; ratio: number }> {
-  const scrollEvents = events.filter((event) => event.type === "scroll");
-  if (scrollEvents.length === 0) {
-    return [];
-  }
-
-  const bands = 10;
-  const histogram = Array.from({ length: bands }, () => 0);
-
-  for (const event of scrollEvents) {
-    const index = Math.min(bands - 1, Math.floor(event.maxDepth / (100 / bands)));
-    histogram[index] += 1;
-  }
-
-  const total = histogram.reduce((sum, count) => sum + count, 0);
-  if (total === 0) {
-    return [];
-  }
-
-  return histogram.map((count, index) => ({
-    depth: index * (100 / bands),
-    ratio: count / total,
-  }));
+  return scrollReach(events).bands;
 }

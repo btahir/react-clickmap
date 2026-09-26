@@ -1,818 +1,286 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { randomBytes, timingSafeEqual } from "node:crypto";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { createServer } from "node:http";
 import { dirname, resolve } from "node:path";
-import type { CaptureEvent, CaptureType, DeviceType, HeatmapQuery } from "react-clickmap";
+import {
+  buildReport,
+  type CaptureEvent,
+  createEvidence,
+  evidenceCsv,
+  evidenceMarkdown,
+  matchesQuery,
+  validateEvents,
+  validateEvidence,
+  validateQuery,
+} from "react-clickmap/contracts";
 
-const DEFAULT_PORT = 3334;
-const DEFAULT_HOST = "127.0.0.1";
-const DEFAULT_DATA_PATH = ".react-clickmap/events.json";
-
-const VALID_CAPTURE_TYPES = new Set<CaptureType>([
-  "click",
-  "dead-click",
-  "scroll",
-  "pointer-move",
-  "rage-click",
-]);
-
-const VALID_DEVICES = new Set<HeatmapQuery["device"]>(["all", "desktop", "tablet", "mobile"]);
-
-interface CliOptions {
-  host: string;
-  port: number;
-  dataFile: string;
+const args = process.argv.slice(2);
+const command = args[0] && !args[0].startsWith("-") ? args.shift() : "serve";
+const option = (name: string, fallback = "") => {
+  const i = args.indexOf(`--${name}`);
+  return i < 0 ? fallback : (args[i + 1] ?? fallback);
+};
+const file = resolve(option("data", ".react-clickmap/events.json"));
+function read(): CaptureEvent[] {
+  if (!existsSync(file)) return [];
+  return validateEvents(JSON.parse(readFileSync(file, "utf8")), 100000);
 }
-
-function printHelp(): void {
-  console.log(`@react-clickmap/cli
-
-Usage:
-  react-clickmap [options]
-
-Options:
-  --port <number>      Port to bind (default: ${DEFAULT_PORT})
-  --host <address>     Host to bind (default: ${DEFAULT_HOST})
-  --data <file>        Path to JSON event store (default: ${DEFAULT_DATA_PATH})
-  --help               Show this help
-
-What this starts:
-  1) POST/GET/DELETE API at /api/clickmap
-  2) Local preview dashboard at /
-`);
-}
-
-function parseCliOptions(argv: string[]): CliOptions {
-  const options: CliOptions = {
-    host: DEFAULT_HOST,
-    port: DEFAULT_PORT,
-    dataFile: resolve(process.cwd(), DEFAULT_DATA_PATH),
-  };
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index];
-
-    if (!arg) {
-      continue;
-    }
-
-    if (arg === "--help" || arg === "-h") {
-      printHelp();
-      process.exit(0);
-    }
-
-    if (arg === "--port") {
-      const next = argv[index + 1];
-      if (!next) {
-        throw new Error("Missing value for --port");
-      }
-
-      const parsed = Number(next);
-      if (!Number.isInteger(parsed) || parsed <= 0) {
-        throw new Error(`Invalid --port value: ${next}`);
-      }
-
-      options.port = parsed;
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--host") {
-      const next = argv[index + 1];
-      if (!next) {
-        throw new Error("Missing value for --host");
-      }
-
-      options.host = next;
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--data") {
-      const next = argv[index + 1];
-      if (!next) {
-        throw new Error("Missing value for --data");
-      }
-
-      options.dataFile = resolve(process.cwd(), next);
-      index += 1;
-      continue;
-    }
-
-    if (arg.startsWith("--port=")) {
-      const parsed = Number(arg.slice("--port=".length));
-      if (!Number.isInteger(parsed) || parsed <= 0) {
-        throw new Error(`Invalid --port value: ${arg}`);
-      }
-
-      options.port = parsed;
-      continue;
-    }
-
-    if (arg.startsWith("--host=")) {
-      options.host = arg.slice("--host=".length);
-      continue;
-    }
-
-    if (arg.startsWith("--data=")) {
-      options.dataFile = resolve(process.cwd(), arg.slice("--data=".length));
-      continue;
-    }
-
-    throw new Error(`Unknown argument: ${arg}`);
-  }
-
-  return options;
-}
-
-function ensureStoreFile(dataFile: string): void {
-  mkdirSync(dirname(dataFile), { recursive: true });
-
-  if (!existsSync(dataFile)) {
-    writeFileSync(dataFile, "[]\n", "utf8");
-  }
-}
-
-function readStore(dataFile: string): CaptureEvent[] {
-  ensureStoreFile(dataFile);
-
+function write(events: CaptureEvent[]) {
+  mkdirSync(dirname(file), { recursive: true });
+  const temp = `${file}.${process.pid}.tmp`;
   try {
-    const raw = readFileSync(dataFile, "utf8");
-    const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? (parsed as CaptureEvent[]) : [];
-  } catch {
-    return [];
+    writeFileSync(temp, JSON.stringify(events), { mode: 0o600 });
+    renameSync(temp, file);
+  } finally {
+    if (existsSync(temp)) unlinkSync(temp);
   }
 }
-
-function writeStore(dataFile: string, events: CaptureEvent[]): void {
-  ensureStoreFile(dataFile);
-  writeFileSync(dataFile, JSON.stringify(events, null, 2), "utf8");
+function dedup(events: CaptureEvent[]) {
+  return [...new Map(events.map((e) => [e.eventId, e])).values()];
 }
-
-function toFiniteNumber(value: string | null): number | undefined {
-  if (value === null) {
-    return undefined;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function toPositiveInteger(value: string | null): number | undefined {
-  const parsed = toFiniteNumber(value);
-  if (typeof parsed !== "number") {
-    return undefined;
-  }
-
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return undefined;
-  }
-
-  return parsed;
-}
-
-function parseTypes(value: string | null): CaptureType[] | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  const types = value
-    .split(",")
-    .map((segment) => segment.trim())
-    .filter((segment): segment is CaptureType => VALID_CAPTURE_TYPES.has(segment as CaptureType));
-
-  return types.length > 0 ? types : undefined;
-}
-
-function parseDevice(value: string | null): HeatmapQuery["device"] | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  if (!VALID_DEVICES.has(value as HeatmapQuery["device"])) {
-    return undefined;
-  }
-
-  return value as DeviceType | "all";
-}
-
-function parseQuery(searchParams: URLSearchParams): HeatmapQuery {
-  const query: HeatmapQuery = {};
-
-  const page = searchParams.get("page");
-  if (page) {
-    query.page = page;
-  }
-
-  const routeKey = searchParams.get("routeKey");
-  if (routeKey) {
-    query.routeKey = routeKey;
-  }
-
-  const sessionId = searchParams.get("sessionId");
-  if (sessionId) {
-    query.sessionId = sessionId;
-  }
-
-  const projectId = searchParams.get("projectId");
-  if (projectId) {
-    query.projectId = projectId;
-  }
-
-  const userId = searchParams.get("userId");
-  if (userId) {
-    query.userId = userId;
-  }
-
-  const from = toFiniteNumber(searchParams.get("from"));
-  if (typeof from === "number") {
-    query.from = from;
-  }
-
-  const to = toFiniteNumber(searchParams.get("to"));
-  if (typeof to === "number") {
-    query.to = to;
-  }
-
-  const types = parseTypes(searchParams.get("types"));
-  if (types) {
-    query.types = types;
-  }
-
-  const device = parseDevice(searchParams.get("device"));
-  if (device) {
-    query.device = device;
-  }
-
-  const limit = toPositiveInteger(searchParams.get("limit"));
-  if (typeof limit === "number") {
-    query.limit = limit;
-  }
-
-  return query;
-}
-
-function matchesQuery(event: CaptureEvent, query: HeatmapQuery): boolean {
-  if (query.page && event.pathname !== query.page) {
-    return false;
-  }
-
-  if (query.routeKey && event.routeKey !== query.routeKey) {
-    return false;
-  }
-
-  if (query.sessionId && event.sessionId !== query.sessionId) {
-    return false;
-  }
-
-  if (query.projectId && event.projectId !== query.projectId) {
-    return false;
-  }
-
-  if (query.userId && event.userId !== query.userId) {
-    return false;
-  }
-
-  if (query.device && query.device !== "all" && event.deviceType !== query.device) {
-    return false;
-  }
-
-  if (query.types && query.types.length > 0 && !query.types.includes(event.type)) {
-    return false;
-  }
-
-  if (typeof query.from === "number" && event.timestamp < query.from) {
-    return false;
-  }
-
-  if (typeof query.to === "number" && event.timestamp > query.to) {
-    return false;
-  }
-
-  return true;
-}
-
-function filterEvents(events: CaptureEvent[], query: HeatmapQuery): CaptureEvent[] {
-  const filtered = events.filter((event) => matchesQuery(event, query));
-
-  if (typeof query.limit === "number" && query.limit > 0) {
-    return filtered.slice(0, query.limit);
-  }
-
-  return filtered;
-}
-
-function hasFilters(query: HeatmapQuery): boolean {
-  return Object.keys(query).length > 0;
-}
-
-function readBody(request: IncomingMessage): Promise<string> {
-  return new Promise((resolveBody, rejectBody) => {
-    let body = "";
-
-    request.setEncoding("utf8");
-    request.on("data", (chunk) => {
-      body += chunk;
-      if (body.length > 5_000_000) {
-        request.destroy();
-        rejectBody(new Error("Payload too large"));
-      }
-    });
-
-    request.on("end", () => {
-      resolveBody(body);
-    });
-
-    request.on("error", (error) => {
-      rejectBody(error);
-    });
-  });
-}
-
-function setCommonHeaders(response: ServerResponse): void {
-  response.setHeader("access-control-allow-origin", "*");
-  response.setHeader("access-control-allow-methods", "GET,POST,DELETE,OPTIONS");
-  response.setHeader("access-control-allow-headers", "content-type,authorization");
-  response.setHeader("cache-control", "no-store");
-}
-
-function sendJson(response: ServerResponse, statusCode: number, payload: unknown): void {
-  response.statusCode = statusCode;
-  response.setHeader("content-type", "application/json; charset=utf-8");
-  response.end(JSON.stringify(payload));
-}
-
-function dashboardHtml(): string {
-  return `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>react-clickmap local dashboard</title>
-  <style>
-    :root {
-      --bg: #071321;
-      --panel: rgba(7, 18, 34, 0.82);
-      --card: rgba(9, 27, 48, 0.74);
-      --text: #e5f0ff;
-      --muted: #98afc8;
-      --border: rgba(128, 197, 255, 0.2);
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: "Avenir Next", "Segoe UI", "IBM Plex Sans", sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(70% 50% at 0% 0%, rgba(86, 161, 255, 0.24), transparent 60%),
-        radial-gradient(80% 60% at 100% 100%, rgba(255, 161, 84, 0.2), transparent 60%),
-        linear-gradient(150deg, #040c17, #09192d 45%, #131326 100%);
-      min-height: 100vh;
-      padding: 18px;
-    }
-    .wrap {
-      max-width: 1100px;
-      margin: 0 auto;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 18px;
-      box-shadow: 0 24px 80px rgba(1, 8, 23, 0.55);
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 14px;
-    }
-    h1 {
-      margin: 0;
-      font-size: 30px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      font-family: "Avenir Next Condensed", "Franklin Gothic Medium", "Segoe UI", sans-serif;
-    }
-    .sub { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
-    .controls { display: flex; gap: 8px; flex-wrap: wrap; }
-    button {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: linear-gradient(140deg, rgba(13, 35, 59, 0.9), rgba(12, 18, 34, 0.8));
-      color: var(--text);
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      font-weight: 700;
-      padding: 9px 12px;
-      cursor: pointer;
-    }
-    .metrics {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    .metric {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 12px;
-    }
-    .metric label {
-      display: block;
-      color: var(--muted);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-    .metric strong { display: block; margin-top: 6px; font-size: 22px; }
-    .grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 10px;
-      align-items: start;
-    }
-    .panel {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 12px;
-    }
-    .panel h2 {
-      margin: 0 0 10px;
-      font-size: 13px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #cce4ff;
-    }
-    canvas {
-      width: 100%;
-      height: 360px;
-      background: rgba(5, 13, 26, 0.9);
-      border-radius: 12px;
-      border: 1px solid rgba(122, 176, 230, 0.2);
-      display: block;
-    }
-    ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
-    li {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 8px;
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      font-size: 12px;
-      color: #e0efff;
-      background: rgba(5, 12, 24, 0.64);
-    }
-    code {
-      font-family: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 75%;
-    }
-    .status { margin-top: 10px; color: var(--muted); font-size: 12px; }
-    @media (max-width: 900px) {
-      .grid { grid-template-columns: 1fr; }
-      canvas { height: 280px; }
-    }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="header">
-      <div>
-        <h1>react-clickmap local</h1>
-        <p class="sub">Self-hosted preview dashboard. endpoint: <code>/api/clickmap</code></p>
-      </div>
-      <div class="controls">
-        <button id="reload">Reload</button>
-        <button id="clear">Delete All</button>
-      </div>
-    </div>
-
-    <div class="metrics">
-      <div class="metric"><label>Total Events</label><strong id="m-total">0</strong></div>
-      <div class="metric"><label>Clicks</label><strong id="m-clicks">0</strong></div>
-      <div class="metric"><label>Rage Clicks</label><strong id="m-rage">0</strong></div>
-      <div class="metric"><label>Dead Clicks</label><strong id="m-dead">0</strong></div>
-      <div class="metric"><label>Scroll Events</label><strong id="m-scroll">0</strong></div>
-      <div class="metric"><label>Sessions</label><strong id="m-sessions">0</strong></div>
-    </div>
-
-    <div class="grid">
-      <section class="panel">
-        <h2>Heatmap</h2>
-        <canvas id="canvas"></canvas>
-      </section>
-
-      <section class="panel">
-        <h2>Top Pages</h2>
-        <ul id="pages"></ul>
-      </section>
-    </div>
-
-    <p class="status" id="status">Loading…</p>
-  </div>
-
-  <script>
-    var endpoint = '/api/clickmap';
-    var status = document.getElementById('status');
-    var canvas = document.getElementById('canvas');
-    var context = canvas.getContext('2d');
-    var pagesNode = document.getElementById('pages');
-
-    var metrics = {
-      total: document.getElementById('m-total'),
-      clicks: document.getElementById('m-clicks'),
-      rage: document.getElementById('m-rage'),
-      dead: document.getElementById('m-dead'),
-      scroll: document.getElementById('m-scroll'),
-      sessions: document.getElementById('m-sessions')
-    };
-
-    var latestEvents = [];
-
-    function number(value) {
-      return new Intl.NumberFormat('en-US').format(value);
-    }
-
-    function escapeHtml(value) {
-      return String(value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    }
-
-    function resizeCanvas() {
-      var bounds = canvas.getBoundingClientRect();
-      canvas.width = Math.floor(bounds.width);
-      canvas.height = Math.floor(bounds.height);
-      drawHeatmap(latestEvents);
-    }
-
-    function drawSpot(x, y, strength, color) {
-      var radius = 18 + strength * 30;
-      var gradient = context.createRadialGradient(x, y, 0, x, y, radius);
-      gradient.addColorStop(0, color);
-      gradient.addColorStop(1, 'rgba(0,0,0,0)');
-      context.fillStyle = gradient;
-      context.beginPath();
-      context.arc(x, y, radius, 0, Math.PI * 2);
-      context.fill();
-    }
-
-    function drawHeatmap(events) {
-      context.clearRect(0, 0, canvas.width, canvas.height);
-
-      for (var i = 0; i < events.length; i += 1) {
-        var event = events[i];
-        if (!(typeof event.x === 'number' && typeof event.y === 'number')) {
-          continue;
-        }
-
-        var x = Math.max(0, Math.min(canvas.width, (event.x / 100) * canvas.width));
-        var y = Math.max(0, Math.min(canvas.height, (event.y / 100) * canvas.height));
-
-        var color = 'rgba(94, 186, 255, 0.24)';
-        if (event.type === 'rage-click') {
-          color = 'rgba(255, 111, 69, 0.3)';
-        } else if (event.type === 'dead-click') {
-          color = 'rgba(255, 194, 92, 0.28)';
-        } else if (event.type === 'pointer-move') {
-          color = 'rgba(109, 224, 186, 0.16)';
-        }
-
-        var strength = 0.45;
-        if (event.type === 'rage-click') {
-          strength = 1;
-        } else if (event.type === 'dead-click') {
-          strength = 0.72;
-        }
-
-        drawSpot(x, y, strength, color);
-      }
-    }
-
-    function renderMetrics(events) {
-      var sessions = new Set();
-      var pages = new Map();
-      var clicks = 0;
-      var rage = 0;
-      var dead = 0;
-      var scroll = 0;
-
-      for (var i = 0; i < events.length; i += 1) {
-        var event = events[i];
-        sessions.add(event.sessionId);
-        pages.set(event.pathname, (pages.get(event.pathname) || 0) + 1);
-
-        if (event.type === 'click') clicks += 1;
-        else if (event.type === 'rage-click') rage += 1;
-        else if (event.type === 'dead-click') dead += 1;
-        else if (event.type === 'scroll') scroll += 1;
-      }
-
-      metrics.total.textContent = number(events.length);
-      metrics.clicks.textContent = number(clicks);
-      metrics.rage.textContent = number(rage);
-      metrics.dead.textContent = number(dead);
-      metrics.scroll.textContent = number(scroll);
-      metrics.sessions.textContent = number(sessions.size);
-
-      pagesNode.innerHTML = '';
-      Array.from(pages.entries())
-        .sort(function (a, b) { return b[1] - a[1]; })
-        .slice(0, 7)
-        .forEach(function (entry) {
-          var pathname = entry[0];
-          var count = entry[1];
-          var li = document.createElement('li');
-          li.innerHTML = '<code>' + escapeHtml(pathname) + '</code><strong>' + number(count) + '</strong>';
-          pagesNode.appendChild(li);
-        });
-
-      if (pagesNode.children.length === 0) {
-        var empty = document.createElement('li');
-        empty.textContent = 'No events yet.';
-        pagesNode.appendChild(empty);
-      }
-    }
-
-    async function loadEvents() {
-      try {
-        var response = await fetch(endpoint);
-        if (!response.ok) {
-          throw new Error('Request failed: ' + response.status);
-        }
-
-        var payload = await response.json();
-        latestEvents = Array.isArray(payload.events) ? payload.events : [];
-        renderMetrics(latestEvents);
-        drawHeatmap(latestEvents);
-        status.textContent = 'Loaded ' + number(latestEvents.length) + ' events from ' + new Date().toLocaleTimeString() + '.';
-      } catch (error) {
-        status.textContent = 'Load error: ' + (error && error.message ? error.message : String(error));
-      }
-    }
-
-    document.getElementById('reload').addEventListener('click', loadEvents);
-    document.getElementById('clear').addEventListener('click', async function () {
-      var confirmed = window.confirm('Delete all local clickmap events?');
-      if (!confirmed) {
-        return;
-      }
-
-      var response = await fetch(endpoint, { method: 'DELETE' });
-      if (response.ok) {
-        await loadEvents();
-      }
-    });
-
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-    loadEvents();
-    setInterval(loadEvents, 4000);
-  </script>
-</body>
-</html>`;
-}
-
-async function handlePost(
-  request: IncomingMessage,
-  response: ServerResponse,
-  dataFile: string,
-): Promise<void> {
-  const rawBody = await readBody(request);
-  const parsed = rawBody.trim() ? (JSON.parse(rawBody) as unknown) : null;
-
-  const incoming = Array.isArray(parsed)
-    ? (parsed as CaptureEvent[])
-    : parsed && Array.isArray((parsed as { events?: CaptureEvent[] }).events)
-      ? ((parsed as { events: CaptureEvent[] }).events as CaptureEvent[])
-      : [];
-
-  const existing = readStore(dataFile);
-  existing.push(...incoming);
-  writeStore(dataFile, existing);
-
-  sendJson(response, 202, {
-    ok: true,
-    saved: incoming.length,
-    total: existing.length,
-  });
-}
-
-function handleGet(response: ServerResponse, dataFile: string, query: HeatmapQuery): void {
-  const events = filterEvents(readStore(dataFile), query);
-
-  sendJson(response, 200, {
-    events,
-    total: events.length,
-  });
-}
-
-function handleDelete(response: ServerResponse, dataFile: string, query: HeatmapQuery): void {
-  const existing = readStore(dataFile);
-
-  if (!hasFilters(query)) {
-    writeStore(dataFile, []);
-    sendJson(response, 200, { ok: true, deleted: existing.length, remaining: 0 });
+async function main() {
+  if (args.includes("--help")) {
+    console.log(
+      `Clickmap local tools\n\nreact-clickmap serve [--port 3334] [--data .react-clickmap/events.json] [--project default] [--origin http://localhost:3000]\nreact-clickmap validate --file evidence.json\nreact-clickmap report --file evidence.json [--format markdown|json|csv]\nreact-clickmap doctor --data events.json\nreact-clickmap prune --data events.json --before 2026-01-01 [--apply]\n\nLoopback only. Read/delete access uses a generated session token (or CLICKMAP_TOKEN). Ingest is bounded and project-bound. Store errors stop writes. Reports run locally without AI or network calls.`,
+    );
     return;
   }
-
-  const remaining = existing.filter((event) => !matchesQuery(event, query));
-  const deleted = existing.length - remaining.length;
-  writeStore(dataFile, remaining);
-
-  sendJson(response, 200, { ok: true, deleted, remaining: remaining.length });
-}
-
-async function start(): Promise<void> {
-  const options = parseCliOptions(process.argv.slice(2));
-  ensureStoreFile(options.dataFile);
-
-  const server = createServer(async (request, response) => {
-    setCommonHeaders(response);
-
-    if (!request.url) {
-      sendJson(response, 400, { error: "Missing request URL" });
+  if (command === "validate" || command === "report") {
+    const input = option("file");
+    if (!input) throw new Error("--file is required");
+    const raw = readFileSync(resolve(input), "utf8");
+    if (Buffer.byteLength(raw) > 10000000) throw new Error("File exceeds 10MB");
+    const doc = validateEvidence(JSON.parse(raw));
+    if (command === "validate") {
+      console.log(JSON.stringify({ valid: true, version: doc.version, events: doc.events.length }));
       return;
     }
-
-    const requestUrl = new URL(request.url, `http://${options.host}:${options.port}`);
-
-    if (request.method === "OPTIONS") {
-      response.statusCode = 204;
-      response.end();
+    const format = option("format", "markdown");
+    console.log(
+      format === "json"
+        ? JSON.stringify(buildReport(doc), null, 2)
+        : format === "csv"
+          ? evidenceCsv(doc)
+          : evidenceMarkdown(doc),
+    );
+    return;
+  }
+  if (command === "doctor") {
+    const events = read();
+    console.log(
+      JSON.stringify(
+        {
+          valid: true,
+          events: events.length,
+          projects: [...new Set(events.map((e) => e.projectId))],
+          store: file,
+          latestEvent: events.length
+            ? new Date(events.reduce((latest, e) => Math.max(latest, e.timestamp), 0)).toISOString()
+            : null,
+          notes: [
+            "Local file collector. Not a multi-process database.",
+            "No hidden telemetry. No remote model.",
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+  if (command === "prune") {
+    const before = Date.parse(option("before"));
+    if (!Number.isFinite(before)) throw new Error("--before requires an ISO date");
+    const events = read();
+    const kept = events.filter((e) => e.timestamp >= before);
+    if (args.includes("--apply")) write(kept);
+    console.log(
+      JSON.stringify({ matched: events.length - kept.length, applied: args.includes("--apply") }),
+    );
+    return;
+  }
+  if (command !== "serve") throw new Error(`Unknown command: ${command}`);
+  const host = option("host", "127.0.0.1");
+  if (!["127.0.0.1", "localhost", "::1"].includes(host))
+    throw new Error(
+      "Local preview binds to loopback only. Use the authorized Next.js/Postgres recipe for a shared deployment.",
+    );
+  const port = Number(option("port", "3334"));
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invalid port");
+  const project = option("project", "default");
+  const allowed = option("origin");
+  const token = process.env.CLICKMAP_TOKEN || randomBytes(24).toString("hex");
+  read(); // refuse to start on corrupt data
+  const authorized = (header: string | undefined) => {
+    const a = Buffer.from(header ?? "");
+    const b = Buffer.from(`Bearer ${token}`);
+    return a.length === b.length && timingSafeEqual(a, b);
+  };
+  const server = createServer(async (req, res) => {
+    const origin = req.headers.origin;
+    const ownOrigins = [
+      `http://127.0.0.1:${port}`,
+      `http://localhost:${port}`,
+      `http://[::1]:${port}`,
+    ];
+    const send = (status: number, data: unknown) => {
+      res.writeHead(status, {
+        "content-type": "application/json",
+        "cache-control": "no-store",
+        "x-content-type-options": "nosniff",
+      });
+      res.end(JSON.stringify(data));
+    };
+    if (
+      ![`127.0.0.1:${port}`, `localhost:${port}`, `[::1]:${port}`].includes(req.headers.host ?? "")
+    ) {
+      send(403, { error: "Host denied" });
       return;
     }
-
-    if (request.method === "GET" && requestUrl.pathname === "/") {
-      response.statusCode = 200;
-      response.setHeader("content-type", "text/html; charset=utf-8");
-      response.end(dashboardHtml());
+    if (origin && !ownOrigins.includes(origin) && origin !== allowed) {
+      send(403, { error: "Origin denied" });
       return;
     }
-
-    if (request.method === "GET" && requestUrl.pathname === "/health") {
-      sendJson(response, 200, { ok: true });
+    const url = new URL(req.url ?? "/", `http://localhost:${port}`);
+    const api = url.pathname === "/api/clickmap" || url.pathname === "/api/clickmap/evidence";
+    if (!api && origin && !ownOrigins.includes(origin)) {
+      send(403, { error: "Inspector is same-origin only" });
       return;
     }
-
-    if (requestUrl.pathname === "/api/clickmap") {
-      try {
-        const query = parseQuery(requestUrl.searchParams);
-
-        if (request.method === "POST") {
-          await handlePost(request, response, options.dataFile);
-          return;
-        }
-
-        if (request.method === "GET") {
-          handleGet(response, options.dataFile, query);
-          return;
-        }
-
-        if (request.method === "DELETE") {
-          handleDelete(response, options.dataFile, query);
-          return;
-        }
-      } catch (error) {
-        sendJson(response, 500, {
-          error: error instanceof Error ? error.message : "Unexpected server error",
-        });
+    if (origin && api) {
+      res.setHeader("access-control-allow-origin", origin);
+      res.setHeader("vary", "Origin");
+      res.setHeader("access-control-allow-methods", "GET,POST,DELETE,OPTIONS");
+      res.setHeader("access-control-allow-headers", "authorization,content-type");
+    }
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+    if (url.pathname === "/health") {
+      send(200, { ok: true, project });
+      return;
+    }
+    if (url.pathname === "/" && req.method === "GET") {
+      res.writeHead(200, {
+        "content-type": "text/html",
+        "cache-control": "no-store",
+        "x-frame-options": "DENY",
+        "content-security-policy":
+          "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'",
+      });
+      res.end(html(token, project));
+      return;
+    }
+    if (!api) {
+      send(404, { error: "Not found" });
+      return;
+    }
+    try {
+      if (url.pathname.endsWith("/evidence") && req.method !== "GET") {
+        send(405, { error: "Method not allowed" });
         return;
       }
+      if (req.method === "POST") {
+        let body = "";
+        let bytes = 0;
+        for await (const chunk of req) {
+          bytes += Buffer.byteLength(chunk);
+          if (bytes > 262144) {
+            send(413, { error: "Payload too large" });
+            return;
+          }
+          body += chunk;
+        }
+        const json = JSON.parse(body);
+        const events = validateEvents(Array.isArray(json) ? json : json.events, 500);
+        if (events.some((e) => e.projectId !== project)) {
+          send(403, { error: "Project mismatch" });
+          return;
+        }
+        const all = dedup([...read(), ...events]);
+        if (all.length > 100000) {
+          send(413, { error: "Store limit reached; export or prune events" });
+          return;
+        }
+        write(all);
+        send(202, { saved: events.length });
+        return;
+      }
+      if (!authorized(req.headers.authorization)) {
+        send(401, { error: "Bearer token required" });
+        return;
+      }
+      const raw = Object.fromEntries(
+        [...url.searchParams].map(([k, v]) => [
+          k,
+          ["from", "to", "limit", "viewportMin", "viewportMax"].includes(k)
+            ? Number(v)
+            : k === "types"
+              ? v.split(",")
+              : v,
+        ]),
+      );
+      const q = validateQuery(raw);
+      if (q.projectId && q.projectId !== project) {
+        send(403, { error: "Project mismatch" });
+        return;
+      }
+      q.projectId = project;
+      const all = read();
+      const selected = all.filter((e) => matchesQuery(e, q));
+      if (req.method === "GET") {
+        if (selected.length > (q.limit ?? 10000)) {
+          send(413, { error: "Narrow the cohort: query exceeds limit" });
+          return;
+        }
+        send(
+          200,
+          url.pathname.endsWith("/evidence")
+            ? createEvidence(selected, q, "captured", "complete")
+            : { events: selected, complete: true },
+        );
+        return;
+      }
+      if (req.method === "DELETE") {
+        if (!q.to && !q.from && !q.sessionId && !q.page && !q.routeKey) {
+          send(400, { error: "Deletion requires date, session or page scope" });
+          return;
+        }
+        write(all.filter((e) => !matchesQuery(e, q)));
+        send(200, { deleted: selected.length });
+        return;
+      }
+      send(405, { error: "Method not allowed" });
+    } catch (error) {
+      send(400, { error: error instanceof Error ? error.message : "Request failed" });
     }
-
-    sendJson(response, 404, { error: "Not found" });
   });
-
-  server.listen(options.port, options.host, () => {
-    console.log("react-clickmap local preview running");
-    console.log(`Dashboard: http://${options.host}:${options.port}`);
-    console.log(`Ingest API: http://${options.host}:${options.port}/api/clickmap`);
-    console.log(`Data file: ${options.dataFile}`);
+  server.listen(port, host, () =>
+    console.log(
+      `Clickmap local inspector: http://${host}:${port}\nProject: ${project}\nStore: ${file}\nRead/delete bearer token: ${token}\nAllowed app origin: ${allowed || "same-origin only"}`,
+    ),
+  );
+  server.on("error", (error) => {
+    console.error(error.message);
+    process.exitCode = 1;
   });
-
-  const shutdown = (): void => {
-    console.log("\nShutting down react-clickmap local preview...");
-    server.close(() => {
-      process.exit(0);
-    });
-  };
-
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
+  const stop = () => server.close(() => process.exit(0));
+  process.on("SIGINT", stop);
+  process.on("SIGTERM", stop);
 }
-
-start().catch((error) => {
+function html(token: string, project: string) {
+  return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Clickmap local inspector</title><style>body{font:16px/1.6 system-ui;background:#f5f5ed;color:#15352b;max-width:960px;margin:50px auto;padding:24px}h1{font-size:44px;letter-spacing:-2px}button,input{font:inherit;padding:9px 14px;background:white;border:1px solid #abb9a9;border-radius:7px}table{width:100%;text-align:left;border-collapse:collapse}td,th{padding:12px;border-bottom:1px solid #cdd6ca}pre{overflow:auto;background:white;padding:20px}small{color:#50655b}</style><header><small>CLICKMAP / LOCAL INSPECTOR</small><h1>Your first event starts here.</h1><p>This is a local event inbox. Inspect spatial overlays inside your actual React app using Clickmap Studio.</p></header><label>Page path <input id="page" placeholder="All pages"></label> <button id="refresh">Refresh</button> <button id="export">Export evidence</button><p id="status" role="status"></p><table><thead><tr><th>Time</th><th>Type</th><th>Page</th><th>Target</th></tr></thead><tbody id="rows"></tbody></table><details><summary>Connect your application</summary><pre id="setup"></pre></details><script>const token=${JSON.stringify(token).replace(/</g, "\\u003c")},project=${JSON.stringify(project).replace(/</g, "\\u003c")};let events=[];const status=document.getElementById('status');document.getElementById('setup').textContent='fetchAdapter({ endpoint: "'+location.origin+'/api/clickmap" })\nClickmapProvider projectId="'+project+'"\n\nStart the CLI with --origin matching your React app URL.\nUse the generated bearer token only in developer/admin tooling for reads and deletes.';async function load(){try{const page=document.getElementById('page').value;const r=await fetch('/api/clickmap?'+new URLSearchParams(page?{page}:{}),{headers:{Authorization:'Bearer '+token}});const body=await r.json();if(!r.ok)throw Error(body.error);events=body.events;status.textContent=events.length+' captured records • '+new Set(events.map(e=>e.sessionId)).size+' observed sessions (not all visitors)';const rows=document.getElementById('rows');rows.replaceChildren();for(const e of events.slice(-30).reverse()){const row=document.createElement('tr');for(const value of [new Date(e.timestamp).toLocaleTimeString(),e.type,e.pathname,e.selector||'—']){const cell=document.createElement('td');cell.textContent=value;row.append(cell);}rows.append(row);}}catch(e){status.textContent=e.message;}}document.getElementById('refresh').onclick=load;document.getElementById('export').onclick=async()=>{try{const page=document.getElementById('page').value;const r=await fetch('/api/clickmap/evidence?'+new URLSearchParams(page?{page}:{}),{headers:{Authorization:'Bearer '+token}});const doc=await r.json();if(!r.ok)throw Error(doc.error);const u=URL.createObjectURL(new Blob([JSON.stringify(doc,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download='clickmap-evidence.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}catch(e){status.textContent=e.message;}};load();setInterval(load,4000);</script></html>`;
+}
+main().catch((error) => {
   console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
+  process.exitCode = 1;
 });

@@ -14,21 +14,21 @@ function extractIndexNames(sql: string): string[] {
 
 /** Extract the column names declared inside a `CREATE TABLE IF NOT EXISTS <table> ( ... )` block. */
 function extractCreateTableColumns(sql: string, tableName: string): string[] {
-  const pattern = new RegExp(
-    `CREATE TABLE IF NOT EXISTS ${tableName} \\(([\\s\\S]*?)\\n\\);`,
-  );
+  const pattern = new RegExp(`CREATE TABLE IF NOT EXISTS ${tableName} \\(([\\s\\S]*?)\\n\\);`);
   const match = pattern.exec(sql);
   if (!match?.[1]) {
     throw new Error(`Could not find CREATE TABLE block for ${tableName}`);
   }
 
-  return match[1]
-    .split(",\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => line.split(/\s+/)[0]!)
-    // Skip table-level constraints (no column of that "name" exists).
-    .filter((token) => !/^(PRIMARY|UNIQUE|CONSTRAINT|CHECK|FOREIGN)$/i.test(token));
+  return (
+    match[1]
+      .split(",\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => line.split(/\s+/)[0]!)
+      // Skip table-level constraints (no column of that "name" exists).
+      .filter((token) => !/^(PRIMARY|UNIQUE|CONSTRAINT|CHECK|FOREIGN)$/i.test(token))
+  );
 }
 
 /** Extract columns added via `ADD COLUMN IF NOT EXISTS <name> ...` for a given table's ALTER block. */

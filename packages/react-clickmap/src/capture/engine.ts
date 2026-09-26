@@ -10,6 +10,11 @@ import { createScrollTracker } from "./scroll-tracker";
 
 export interface CaptureEngineOptions {
   adapter: ClickmapAdapter;
+  layoutId?: string;
+  normalizeRoute?: (pathname: string) => string;
+  beforeCapture?: (
+    event: import("../types").CaptureEvent,
+  ) => import("../types").CaptureEvent | null;
   capture: CaptureType[];
   projectId: string;
   sessionId: string;
@@ -57,14 +62,23 @@ export function createCaptureEngine(options: CaptureEngineOptions): CaptureEngin
   const batcher = new EventBatcher({
     adapter: options.adapter,
     flushIntervalMs: options.flushIntervalMs,
-    maxBatchSize: options.maxBatchSize,
-    onError: options.onError,
+    ...(options.maxBatchSize !== undefined ? { maxBatchSize: options.maxBatchSize } : {}),
+    ...(options.onError ? { onError: options.onError } : {}),
   });
 
   let running = false;
 
   const emitCaptured = (event: Parameters<EventBatcher["push"]>[0]): void => {
-    batcher.push(event);
+    const normalize = options.normalizeRoute ?? ((path: string) => path);
+    const next = {
+      ...event,
+      pathname: normalize(event.pathname),
+      routeKey: normalize(event.routeKey),
+      ...(options.layoutId ? { layoutId: options.layoutId } : {}),
+    };
+    const sanitized = options.beforeCapture ? options.beforeCapture(next) : next;
+    if (!sanitized) return;
+    batcher.push(sanitized);
     options.onEventCaptured?.();
   };
 
@@ -113,7 +127,11 @@ export function createCaptureEngine(options: CaptureEngineOptions): CaptureEngin
           enableClicks: enabledCapture.has("click"),
           enableDeadClicks: enabledCapture.has("dead-click"),
           enableRageClicks: enabledCapture.has("rage-click"),
-          ignoreSelectors: options.ignoreSelectors,
+          ignoreSelectors: [
+            ...options.ignoreSelectors,
+            "[data-clickmap-ignore]",
+            "[data-clickmap-studio]",
+          ],
           maskSelectors: options.maskSelectors,
         }),
       );
@@ -143,7 +161,11 @@ export function createCaptureEngine(options: CaptureEngineOptions): CaptureEngin
           getPathname: getCurrentPathname,
           getRouteKey: getCurrentRouteKey,
           emit: emitCaptured,
-          ignoreSelectors: options.ignoreSelectors,
+          ignoreSelectors: [
+            ...options.ignoreSelectors,
+            "[data-clickmap-ignore]",
+            "[data-clickmap-studio]",
+          ],
         }),
       );
     }

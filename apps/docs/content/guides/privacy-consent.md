@@ -1,137 +1,47 @@
-# Privacy and Consent Guide
+# Privacy and capture controls
 
-react-clickmap is designed for privacy-first analytics. It collects no PII by default, uses no cookies, does no fingerprinting, and respects browser privacy signals out of the box.
+Clickmap avoids cookies and fingerprinting. It still handles interaction data and pseudonymous session identifiers; safe configuration and legal compliance depend on your application and deployment.
 
-## Built-in privacy controls
-
-### Do Not Track
+## Consent and browser signals
 
 ```tsx
-<ClickmapProvider respectDoNotTrack>
+<ClickmapProvider adapter={adapter} projectId="my-app"
+  consentRequired hasConsent={consent}
+  respectDoNotTrack respectGlobalPrivacyControl>
+  <YourApp />
+</ClickmapProvider>
 ```
 
-When enabled, the provider checks `navigator.doNotTrack` on mount. If the value is `"1"` or `"yes"`, no event listeners are started and no events are captured. This respects the user's browser-level privacy preference.
+DNT and GPC are respected by default. If either is active, capture does not start. `consentRequired` defaults to false; explicitly set it where your application requires an opt-in. Revoking consent stops further capture. Already collected data remains in the adapter until your retention/deletion policy removes it. A session ID is stored in sessionStorage; this is not a claim of completely storage-free analytics.
 
-### Global Privacy Control
+## What events contain
 
-```tsx
-<ClickmapProvider respectGlobalPrivacyControl>
-```
+Event ID, project ID, pseudonymous session ID, optional application user ID, timestamp, pathname/route, device class, viewport dimensions/scroll position and event-specific coordinates or depth. Optional selectors and layout IDs describe the application. No input values or DOM snapshots are captured by the core.
 
-When enabled, checks `navigator.globalPrivacyControl`. If `true`, capture is disabled. GPC is a newer standard supported by Firefox, Brave, and DuckDuckGo.
-
-### Both together
-
-```tsx
-<ClickmapProvider respectDoNotTrack respectGlobalPrivacyControl>
-```
-
-Either signal being active will disable capture.
-
-## Consent management
-
-For applications that require explicit opt-in (e.g., GDPR jurisdictions), use the consent props:
-
-```tsx
-function App() {
-  const [hasConsent, setHasConsent] = useState(false);
-
-  return (
-    <>
-      <ConsentBanner onAccept={() => setHasConsent(true)} onReject={() => setHasConsent(false)} />
-
-      <ClickmapProvider
-        adapter={adapter}
-        consentRequired={true}
-        hasConsent={hasConsent}
-      >
-        <YourApp />
-      </ClickmapProvider>
-    </>
-  );
-}
-```
-
-### How consent affects capture
-
-| `consentRequired` | `hasConsent` | Behavior |
-|---|---|---|
-| `false` | — | Capture starts immediately |
-| `true` | `undefined` | No capture (waiting for decision) |
-| `true` | `false` | No capture |
-| `true` | `true` | Capture starts |
-
-When `hasConsent` changes from `true` to `false`:
-
-1. Event listeners are stopped
-2. Any events already in the batcher queue are flushed best-effort (so you don't lose data the user already consented to)
-3. No new events are captured
-
-When `hasConsent` changes from `false` to `true`:
-
-1. Event listeners are started
-2. Capture resumes normally
-
-## Sampling
-
-```tsx
-<ClickmapProvider sampleRate={0.25}>
-```
-
-Only 25% of sessions will have events captured. The decision is deterministic per session — a hash of the session ID is compared against the sample rate, so the same session always gets the same decision. This means:
-
-- No "flickering" behavior within a session
-- Consistent capture across page reloads (same tab)
-- Predictable data volumes
-
-## Selector masking
-
-Mask sensitive elements so their selectors are not included in events:
+Query strings are excluded by default. Paths themselves can contain identifiers: normalize them before capture.
 
 ```tsx
 <ClickmapProvider
-  maskSelectors={[".pii-field", "[data-sensitive]", "input[type=password]"]}
+  adapter={adapter}
+  normalizeRoute={path => path.replace(/\/customers\/[^/]+/, '/customers/:id')}
+  beforeCapture={event => event.pathname.startsWith('/billing') ? null : event}
 >
+  <YourApp />
+</ClickmapProvider>
 ```
 
-When a click lands on a masked element, the event's `selector` field is replaced with a generic placeholder. The `x`/`y` coordinates are still captured (they're viewport percentages, not tied to element identity).
+Keep these callback identities stable where practical. They execute before the event reaches batching or transport.
 
-## Selector ignoring
+## Exclude and mask
 
-Completely exclude elements from capture:
+`data-clickmap-ignore` excludes a subtree from pointer/click capture. Studio uses its own ignored marker. Global page scroll is still observed if scroll capture is enabled.
 
-```tsx
-<ClickmapProvider
-  ignoreSelectors={[".clickmap-ignore", "[data-no-track]"]}
->
-```
+Default selector masking covers inputs, textareas and contenteditable elements. Additional `maskSelectors` extend those defaults. A masked click's selector is omitted; coordinates and route metadata remain. Use `ignoreSelectors` when the event itself should not be recorded. Deliberate `data-clickmap-id="start-project"` labels are preferable to arbitrary DOM IDs/classes; generated selectors no longer copy those attributes.
 
-Clicks on ignored elements produce no events at all.
+## Storage and access
 
-## What react-clickmap does NOT collect
+Never expose admin read/delete access or database service keys to capture clients. Enforce project identity and authorization on the server. DNT, GPC, masking, sampling and self-hosting are controls—not a legal certification or a guarantee that consent is unnecessary.
 
-- No cookies are set or read
-- No browser fingerprinting (canvas fingerprint, WebGL fingerprint, etc.)
-- No IP addresses (your server might log these, but react-clickmap doesn't)
-- No form values or input content
-- No personal identifiers (unless you explicitly set `userId`)
-- No third-party requests (all data goes to your own endpoint)
+## Sharing evidence
 
-## Data minimization recommendations
-
-1. **Enable selector masking** for form inputs, password fields, and PII-related elements
-2. **Avoid passing PII** as `userId` — use an opaque identifier instead
-3. **Scope by `projectId`** to keep data separated across apps or environments
-4. **Set data retention** at the database layer — see the [Persistence Guide](/docs/guides/persistence) for retention recommendations
-5. **Implement `deleteEvents`** in your adapter for GDPR right-to-erasure requests
-
-## GDPR / CCPA compliance checklist
-
-- [ ] Enable `respectDoNotTrack` and/or `respectGlobalPrivacyControl`
-- [ ] Use `consentRequired` + `hasConsent` if you need explicit opt-in
-- [ ] Set `sampleRate` to reduce data volume
-- [ ] Enable `maskSelectors` for sensitive form fields
-- [ ] Use opaque identifiers for `userId`
-- [ ] Implement `deleteEvents()` in your adapter for right-to-erasure
-- [ ] Set up database-level data retention (30–90 day recommended)
-- [ ] Document your data processing in your privacy policy
+Exports omit user IDs/query strings and replace session/event identifiers with local aliases. Application-provided paths and target names may still contain sensitive information; review before sharing. Imported evidence stays in the browser and is never written back to your adapter. Local CLI reports use no hosted AI service.

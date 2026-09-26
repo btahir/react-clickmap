@@ -36,7 +36,7 @@ Called by the `<Heatmap>` component and the `useHeatmapData()` hook to fetch eve
 
 ### `deleteEvents(query)` (optional)
 
-Used for GDPR/CCPA compliance and data retention. Returns the number of deleted events.
+Used for application-controlled deletion and retention. Authorization is required at the server boundary. Returns the number of deleted events.
 
 - Should require at least one filter to prevent accidental full-table deletes.
 

@@ -1,4 +1,6 @@
-"use client";
+import { scopedAdapter } from "react-clickmap/contracts";
+
+("use client");
 
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -202,6 +204,7 @@ export function ClickmapDashboard({
   }, [dateRange?.from, dateRange?.to, device, limit, page, projectId, routeKey, userId]);
 
   const { data, error, isLoading, reload } = useHeatmapData(adapter, query, true);
+  const cohortAdapter = useMemo(() => scopedAdapter(adapter, query), [adapter, query]);
   const snapshot = useMemo(() => buildDashboardSnapshot(data), [data]);
   const [overlayMode, setOverlayMode] = useState<DashboardOverlayMode>(defaultOverlayMode);
 
@@ -363,8 +366,8 @@ export function ClickmapDashboard({
         {[
           { label: "Total Events", value: formatNumber(snapshot.totalEvents), accent: "#8ad6ff" },
           { label: "Sessions", value: formatNumber(snapshot.uniqueSessions), accent: "#9cf6c9" },
-          { label: "Rage Rate", value: formatPercent(snapshot.rageRate), accent: "#ffb271" },
-          { label: "Dead Rate", value: formatPercent(snapshot.deadRate), accent: "#ffc975" },
+          { label: "Rage event share", value: formatPercent(snapshot.rageRate), accent: "#ffb271" },
+          { label: "Dead event share", value: formatPercent(snapshot.deadRate), accent: "#ffc975" },
           {
             label: "Avg Scroll Depth",
             value: formatPercent(snapshot.averageScrollDepth / 100),
@@ -669,7 +672,7 @@ export function ClickmapDashboard({
 
       {overlayMode === "heatmap" ? (
         <Heatmap
-          adapter={adapter}
+          adapter={cohortAdapter}
           {...overlayLocationProps}
           {...(dateRange ? { dateRange } : {})}
           device={device}
@@ -680,7 +683,7 @@ export function ClickmapDashboard({
 
       {overlayMode === "attention" ? (
         <AttentionHeatmap
-          adapter={adapter}
+          adapter={cohortAdapter}
           {...overlayLocationProps}
           device={device}
           zIndex={overlayZIndex}
@@ -689,7 +692,7 @@ export function ClickmapDashboard({
 
       {overlayMode === "comparison" && compareRange ? (
         <ComparisonHeatmap
-          adapter={adapter}
+          adapter={cohortAdapter}
           {...overlayLocationProps}
           device={device}
           beforeDateRange={compareRange.before}
@@ -699,7 +702,7 @@ export function ClickmapDashboard({
       ) : null}
 
       {overlayMode === "scroll-depth" ? (
-        <ScrollDepth adapter={adapter} {...overlayLocationProps} zIndex={overlayZIndex} />
+        <ScrollDepth adapter={cohortAdapter} {...overlayLocationProps} zIndex={overlayZIndex} />
       ) : null}
     </section>
   );

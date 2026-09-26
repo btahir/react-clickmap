@@ -3,17 +3,23 @@
   "private": true,
   "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "build": "pnpm -r build",
+    "build": "pnpm -r --workspace-concurrency=1 build",
     "check": "pnpm -r check",
     "check:fix": "pnpm -r check:fix",
     "test": "pnpm -r test",
     "test:run": "pnpm -r test:run",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "pnpm build && changeset publish"
+    "release": "pnpm build && changeset publish",
+    "test:tools": "node scripts/verify-tools.mjs",
+    "test:postgres": "node scripts/verify-postgres.mjs",
+    "test:browser": "playwright test",
+    "test:packed": "node scripts/verify-packed.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.4",
-    "@changesets/cli": "^2.29.7"
+    "@changesets/cli": "^2.29.7",
+    "@electric-sql/pglite": "0.3.14",
+    "@playwright/test": "1.58.2"
   }
 }

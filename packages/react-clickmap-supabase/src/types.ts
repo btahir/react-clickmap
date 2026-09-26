@@ -1,6 +1,7 @@
 import type { ClickmapAdapter } from "react-clickmap";
 
 export interface SupabaseAdapterOptions {
+  maxReadEvents?: number;
   url: string;
   anonKey: string;
   table?: string;

@@ -27,6 +27,8 @@ export interface EventBase {
   projectId: string;
   sessionId: string;
   userId?: string;
+  /** Application-controlled layout/release identifier. */
+  layoutId?: string;
   timestamp: number;
   pathname: string;
   routeKey: string;
@@ -104,14 +106,20 @@ export type CaptureEvent =
 export interface HeatmapQuery {
   page?: string;
   routeKey?: string;
+  /** Inclusive lower timestamp bound. */
   from?: number;
+  /** Exclusive upper timestamp bound. */
   to?: number;
   device?: "all" | DeviceType;
   types?: CaptureType[];
   sessionId?: string;
   projectId?: string;
   userId?: string;
+  /** Application-controlled layout/release identifier. */
+  layoutId?: string;
   limit?: number;
+  viewportMin?: number;
+  viewportMax?: number;
   /**
    * Coordinate frame to aggregate against when the adapter supports
    * server-side aggregation (`loadAggregated`). Defaults to `"viewport"`.

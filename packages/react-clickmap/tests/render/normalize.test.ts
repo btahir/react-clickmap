@@ -55,7 +55,7 @@ describe("render normalization", () => {
     ]);
 
     expect(summary.length).toBe(10);
-    const ratioTotal = summary.reduce((sum, item) => sum + item.ratio, 0);
-    expect(Math.round(ratioTotal * 1000) / 1000).toBe(1);
+    expect(summary.find((b) => b.depth === 90)?.ratio).toBe(1);
+    expect(summary.find((b) => b.depth === 100)?.ratio).toBe(0);
   });
 });

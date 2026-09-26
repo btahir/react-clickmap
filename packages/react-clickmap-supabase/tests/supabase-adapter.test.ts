@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
 import type { CaptureEvent } from "react-clickmap";
+import { describe, expect, it, vi } from "vitest";
 import { createSupabaseAdapter } from "../src/supabase-adapter";
 
 function buildEvent(overrides: Partial<CaptureEvent> = {}): CaptureEvent {
@@ -32,6 +32,9 @@ function mockFetch(
     return {
       ok: status >= 200 && status < 300,
       status,
+      headers: new Headers({
+        "content-range": `0-${Array.isArray(responseBody) ? Math.max(0, responseBody.length - 1) : 0}/${Array.isArray(responseBody) ? responseBody.length : 0}`,
+      }),
       json: async () => responseBody,
     } as Response;
   };
@@ -104,7 +107,7 @@ describe("createSupabaseAdapter", () => {
 
     const url = fetch.calls[0]!.url;
     expect(url).toContain("occurred_at=gte.");
-    expect(url).toContain("occurred_at=lte.");
+    expect(url).toContain("occurred_at=lt.");
     // Both filters should be present (this validates the append fix)
     const occurrences = url.split("occurred_at=").length - 1;
     expect(occurrences).toBe(2);
@@ -116,7 +119,7 @@ describe("createSupabaseAdapter", () => {
 
     await adapter.load({ limit: 100 });
 
-    expect(fetch.calls[0]!.url).toContain("limit=100");
+    expect(fetch.calls[0]!.url).toContain("limit=101");
   });
 
   it("throws on failed save", async () => {
@@ -318,5 +321,69 @@ describe("createSupabaseAdapter", () => {
     expect(payload.bins).toEqual([{ x: 5, y: 92, value: 1 }]);
     expect(payload.width).toBe(1920);
     expect(payload.height).toBe(9000);
+  });
+});
+
+describe("verified pagination", () => {
+  const row = {
+    event_id: "a",
+    project_id: "p",
+    session_id: "s",
+    occurred_at: "2026-09-25T00:00:00Z",
+    event_type: "click",
+    page_path: "/",
+    route_key: "/",
+    device_type: "desktop",
+    viewport_w: 1000,
+    viewport_h: 800,
+    scroll_x: 0,
+    scroll_y: 0,
+    x_pct: 20,
+    y_pct: 20,
+    pointer_type: "mouse",
+    schema_version: 1,
+  };
+  it("continues after a server-limited short page using verified total and stable ordering", async () => {
+    let page = 0;
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify([{ ...row, event_id: String(page++) }]), {
+          headers: { "content-range": `${page - 1}-${page - 1}/2` },
+        }),
+    );
+    const adapter = createSupabaseAdapter({
+      ...BASE_OPTIONS,
+      fetchImpl: fetchImpl as typeof fetch,
+    });
+    expect(await adapter.load({})).toHaveLength(2);
+    expect(decodeURIComponent(String(fetchImpl.mock.calls[0]?.[0] ?? ""))).toContain(
+      "occurred_at.asc,event_id.asc",
+    );
+  });
+  it("rejects missing range totals instead of guessing that a short page is complete", async () => {
+    const adapter = createSupabaseAdapter({
+      ...BASE_OPTIONS,
+      fetchImpl: (async () => new Response(JSON.stringify([row]))) as typeof fetch,
+    });
+    await expect(adapter.load({})).rejects.toThrow("Content-Range");
+  });
+  it("enforces configured ceiling even when caller requests more", async () => {
+    const adapter = createSupabaseAdapter({
+      ...BASE_OPTIONS,
+      maxReadEvents: 1,
+      fetchImpl: (async () =>
+        new Response(JSON.stringify([row, { ...row, event_id: "b" }]), {
+          headers: { "content-range": "0-1/2" },
+        })) as typeof fetch,
+    });
+    await expect(adapter.load({ limit: 100 })).rejects.toThrow("limit");
+  });
+  it("rejects an inconsistent empty page", async () => {
+    const adapter = createSupabaseAdapter({
+      ...BASE_OPTIONS,
+      fetchImpl: (async () =>
+        new Response("[]", { headers: { "content-range": "*/10" } })) as typeof fetch,
+    });
+    await expect(adapter.load({})).rejects.toThrow("Incomplete");
   });
 });
