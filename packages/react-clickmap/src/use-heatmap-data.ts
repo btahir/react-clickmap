@@ -23,6 +23,7 @@ export function useHeatmapData(
   query: HeatmapQuery,
   enabled = true,
 ): UseHeatmapDataResult {
+  const generation = useRef(0);
   const [data, setData] = useState<CaptureEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -37,6 +38,7 @@ export function useHeatmapData(
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: queryKey (a content-based serialization of `query`) is the intentional dependency in place of `query`'s identity -- see queryRef above.
   const reload = useCallback(async (): Promise<void> => {
+    const request = ++generation.current;
     if (!enabled) {
       setData([]);
       return;
@@ -47,18 +49,21 @@ export function useHeatmapData(
 
     try {
       const events = await adapter.load(queryRef.current);
-      setData(events);
+      if (request === generation.current) setData(events);
     } catch (caught) {
       const normalized =
         caught instanceof Error ? caught : new Error("Failed to load heatmap data");
-      setError(normalized);
+      if (request === generation.current) setError(normalized);
     } finally {
-      setIsLoading(false);
+      if (request === generation.current) setIsLoading(false);
     }
   }, [adapter, enabled, queryKey]);
 
   useEffect(() => {
     void reload();
+    return () => {
+      generation.current++;
+    };
   }, [reload]);
 
   return { data, isLoading, error, reload };

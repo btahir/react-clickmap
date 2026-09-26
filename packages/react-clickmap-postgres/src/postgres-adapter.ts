@@ -77,7 +77,13 @@ function canUseDailyBins(query: HeatmapQuery): boolean {
     return false;
   }
 
-  if (query.sessionId || query.userId) {
+  if (
+    query.sessionId ||
+    query.userId ||
+    query.layoutId ||
+    query.viewportMin !== undefined ||
+    query.viewportMax !== undefined
+  ) {
     return false;
   }
 
@@ -263,11 +269,26 @@ function buildWhereClause(query: HeatmapQuery, startParamIndex = 1): BuiltWhere 
   }
 
   if (typeof query.to === "number") {
-    clauses.push(`occurred_at <= $${index}`);
+    clauses.push(`occurred_at < $${index}`);
     params.push(new Date(query.to));
     index += 1;
   }
 
+  if (query.layoutId) {
+    clauses.push(`payload_jsonb->>'layoutId' = $${index}`);
+    params.push(query.layoutId);
+    index++;
+  }
+  if (query.viewportMin !== undefined) {
+    clauses.push(`viewport_w >= $${index}`);
+    params.push(query.viewportMin);
+    index++;
+  }
+  if (query.viewportMax !== undefined) {
+    clauses.push(`viewport_w <= $${index}`);
+    params.push(query.viewportMax);
+    index++;
+  }
   return {
     whereClause: clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "",
     params,
@@ -303,6 +324,7 @@ function mapRowToEvent(row: PostgresEventRow): CaptureEvent {
   const payload = row.payload_jsonb ?? {};
 
   const base = {
+    ...(typeof payload.layoutId === "string" ? { layoutId: payload.layoutId } : {}),
     schemaVersion: 1 as const,
     eventVersion: 1 as const,
     eventId: row.event_id,
@@ -427,7 +449,7 @@ function toInsertRecord(event: CaptureEvent): unknown[] {
     event.type === "scroll" ? event.maxDepth : null,
     event.type === "rage-click",
     event.type === "dead-click",
-    payload,
+    { ...payload, ...(event.layoutId ? { layoutId: event.layoutId } : {}) },
     event.schemaVersion,
     "docX" in event && typeof event.docX === "number" ? event.docX : null,
     "docY" in event && typeof event.docY === "number" ? event.docY : null,
@@ -437,9 +459,33 @@ function toInsertRecord(event: CaptureEvent): unknown[] {
 }
 
 export function createPostgresAdapter(options: PostgresAdapterOptions): ClickmapAdapter {
+  if (options.sql.connect) {
+    const run = async <T>(work: (adapter: ClickmapAdapter) => Promise<T>) => {
+      const client = await options.sql.connect!();
+      try {
+        return await work(
+          createPostgresAdapter({ ...options, sql: { query: client.query.bind(client) } }),
+        );
+      } finally {
+        client.release();
+      }
+    };
+    return {
+      capabilities: {
+        supportsAggregation: true,
+        supportsRetention: true,
+        supportsIdempotency: true,
+      },
+      save: (events) => run((a) => a.save(events)),
+      load: (q) => run((a) => a.load(q)),
+      deleteEvents: (q) => run((a) => a.deleteEvents!(q)),
+      loadAggregated: (q) => run((a) => a.loadAggregated!(q)),
+    };
+  }
+  const elementsTable = assertTableName(options.elementsTableName ?? DEFAULT_ELEMENTS_TABLE);
   const table = assertTableName(options.tableName ?? "clickmap_events");
   const binsTable = assertTableName(options.binsTableName ?? DEFAULT_BINS_TABLE);
-  const preferDailyBins = options.preferDailyBins ?? true;
+  const preferDailyBins = options.preferDailyBins ?? false;
 
   return {
     capabilities: {
@@ -545,8 +591,13 @@ export function createPostgresAdapter(options: PostgresAdapterOptions): Clickmap
         );
       }
 
-      const result = await options.sql.query(`DELETE FROM ${table} ${whereClause}`, params);
-      return result.rowCount ?? 0;
+      const result = await options.sql.query(
+        `WITH removed AS (DELETE FROM ${table} ${whereClause} RETURNING project_id), bins AS (DELETE FROM ${binsTable} WHERE project_id IN (SELECT project_id FROM removed)), elements AS (DELETE FROM ${elementsTable} WHERE project_id IN (SELECT project_id FROM removed)) SELECT count(*)::integer AS deleted FROM removed`,
+        params,
+      );
+      return Number(
+        (result.rows[0] as { deleted?: number } | undefined)?.deleted ?? result.rowCount ?? 0,
+      );
     },
 
     async loadAggregated(query: HeatmapQuery): Promise<AggregatedHeatmapPayload> {
@@ -573,7 +624,11 @@ export function createPostgresAdapter(options: PostgresAdapterOptions): Clickmap
           params,
         );
 
-        const dimsResult = await options.sql.query<{ width: number; height: number }>(
+        const dimsResult = await options.sql.query<{
+          width: number;
+          height: number;
+          total: number;
+        }>(
           `
           SELECT
             COALESCE(MAX(ref_w), ${columns.fallbackWidth}) AS width,
@@ -585,13 +640,24 @@ export function createPostgresAdapter(options: PostgresAdapterOptions): Clickmap
         );
 
         const dims = dimsResult.rows[0];
+        const rawScope = buildWhereClause(query);
+        const count = await options.sql.query<{ total: number; intensity: number }>(
+          `SELECT COUNT(*)::integer AS total, COALESCE(SUM(CASE WHEN is_rage_click THEN 2 ELSE 1 END),0)::double precision AS intensity FROM ${table} ${rawScope.whereClause} ${rawScope.whereClause ? "AND" : "WHERE"} ${columns.xCol} IS NOT NULL AND ${columns.yCol} IS NOT NULL`,
+          rawScope.params,
+        );
+        if (dims) dims.total = count.rows[0]?.total ?? 0;
 
-        return {
-          width: dims?.width ?? columns.fallbackWidth,
-          height: dims?.height ?? columns.fallbackHeight,
-          bins: binsResult.rows,
-          totalEvents: binsResult.rows.reduce((sum, bin) => sum + bin.value, 0),
-        };
+        if (
+          binsResult.rows.length > 0 &&
+          binsResult.rows.reduce((sum, bin) => sum + Number(bin.value), 0) ===
+            Number(count.rows[0]?.intensity)
+        )
+          return {
+            width: dims?.width ?? columns.fallbackWidth,
+            height: dims?.height ?? columns.fallbackHeight,
+            bins: binsResult.rows,
+            totalEvents: Number(dims?.total ?? 0),
+          };
       }
 
       // Fallback: aggregate raw events in SQL for the requested coordinate space.
@@ -610,11 +676,12 @@ export function createPostgresAdapter(options: PostgresAdapterOptions): Clickmap
         params,
       );
 
-      const dimsResult = await options.sql.query<{ width: number; height: number }>(
+      const dimsResult = await options.sql.query<{ width: number; height: number; total: number }>(
         `
         SELECT
           COALESCE(MAX(${columns.wCol}), ${columns.fallbackWidth}) AS width,
-          COALESCE(MAX(${columns.hCol}), ${columns.fallbackHeight}) AS height
+          COALESCE(MAX(${columns.hCol}), ${columns.fallbackHeight}) AS height,
+          COUNT(*) FILTER (WHERE ${columns.xCol} IS NOT NULL AND ${columns.yCol} IS NOT NULL)::integer AS total
         FROM ${table}
         ${whereClause}
       `,
@@ -627,7 +694,7 @@ export function createPostgresAdapter(options: PostgresAdapterOptions): Clickmap
         width: dims?.width ?? columns.fallbackWidth,
         height: dims?.height ?? columns.fallbackHeight,
         bins: binsResult.rows,
-        totalEvents: binsResult.rows.reduce((sum, bin) => sum + bin.value, 0),
+        totalEvents: Number(dims?.total ?? 0),
       };
     },
   };

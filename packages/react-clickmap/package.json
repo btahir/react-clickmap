@@ -1,9 +1,9 @@
 {
   "name": "react-clickmap",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Privacy-first heatmaps for React. Your data, your database, zero cloud.",
   "license": "MIT",
-  "homepage": "https://github.com/btahir/react-clickmap#readme",
+  "homepage": "https://react-clickmap.vercel.app",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/btahir/react-clickmap.git",
@@ -13,8 +13,8 @@
     "url": "https://github.com/btahir/react-clickmap/issues"
   },
   "funding": {
-    "type": "github",
-    "url": "https://github.com/sponsors/btahir"
+    "type": "individual",
+    "url": "https://react-tourlight.vercel.app/support"
   },
   "type": "module",
   "main": "./dist/index.js",
@@ -25,12 +25,18 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./contracts": {
+      "types": "./dist/contracts.d.ts",
+      "import": "./dist/contracts.js"
+    }
   },
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "skills",
+    "CHANGELOG.md"
   ],
   "sideEffects": false,
   "keywords": [
@@ -55,14 +61,14 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "knip": "knip --include files,dependencies",
     "size-limit": "size-limit",
-    "validate:pkg": "publint && attw .",
+    "validate:pkg": "publint && attw --pack --profile esm-only .",
     "budget": "node ./scripts/check-bundle-budget.mjs",
     "release": "pnpm run build && changeset publish"
   },
   "size-limit": [
     {
       "path": "dist/index.js",
-      "limit": "13 KB"
+      "limit": "18 KB"
     }
   ],
   "devDependencies": {

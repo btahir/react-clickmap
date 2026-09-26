@@ -7,6 +7,7 @@ export type {
   PostgresEventRow,
   RollupOptions,
   RollupResult,
+  SqlConnection,
   SqlExecutor,
   SqlQueryResult,
 } from "./types";

@@ -12,3 +12,5 @@ export type {
   DashboardTimelineBucket,
 } from "./metrics";
 export { buildDashboardSnapshot } from "./metrics";
+export type { ClickmapStudioProps } from "./studio";
+export { ClickmapStudio } from "./studio";

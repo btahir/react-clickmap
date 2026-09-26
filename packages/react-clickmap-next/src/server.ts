@@ -1,389 +1,160 @@
-import { useSyncExternalStore } from "react";
-import {
-  type CaptureEvent,
-  type CaptureType,
-  type ClickmapAdapter,
-  type DeviceType,
-  fetchAdapter,
-  type HeatmapQuery,
-} from "react-clickmap";
-
-const VALID_CAPTURE_TYPES = new Set<CaptureType>([
-  "click",
-  "dead-click",
-  "scroll",
-  "pointer-move",
-  "rage-click",
-]);
-
-const VALID_DEVICES = new Set<HeatmapQuery["device"]>(["all", "desktop", "tablet", "mobile"]);
-
-export interface NextFetchAdapterOptions {
-  endpoint?: string;
-  loadEndpoint?: string;
-  deleteEndpoint?: string;
-  headers?: HeadersInit;
-  fetchImpl?: typeof fetch;
-  preferBeacon?: boolean;
-  keepalive?: boolean;
-  maxPayloadBytes?: number;
-}
-
+import type { ClickmapAdapter, HeatmapQuery } from "react-clickmap";
+import { validateEvents, validateQuery } from "react-clickmap/contracts";
 export interface ClickmapRouteCorsOptions {
   origin?: string;
   headers?: string[];
   methods?: string[];
   maxAgeSeconds?: number;
 }
-
-export interface ClickmapRouteHandlersOptions {
-  cors?: ClickmapRouteCorsOptions;
-  onError?: (error: unknown, request: Request) => Response | Promise<Response>;
-}
-
 export type ClickmapRouteHandler = (request: Request) => Promise<Response>;
-
 export interface ClickmapRouteHandlers {
-  OPTIONS: ClickmapRouteHandler;
   GET: ClickmapRouteHandler;
   POST: ClickmapRouteHandler;
   DELETE: ClickmapRouteHandler;
+  OPTIONS: ClickmapRouteHandler;
 }
-
-export interface UseNextRouteKeyOptions {
-  includeSearch?: boolean;
-  fallbackPathname?: string;
+export interface ClickmapRouteHandlersOptions {
+  projectId: string;
+  /** Required for GET/DELETE. Fail closed when omitted. */
+  authorize?: (request: Request, operation: "read" | "delete") => boolean | Promise<boolean>;
+  authorizeIngest?: (request: Request) => boolean | Promise<boolean>;
+  /** Explicit browser origins; same-origin requests are accepted by default. */
+  allowedOrigins?: string[];
+  maxBodyBytes?: number;
+  maxBatchSize?: number;
+  maxReadEvents?: number;
+  cors?: ClickmapRouteCorsOptions;
+  onError?: (error: unknown, request: Request) => Response | Promise<Response>;
 }
-
-function toFiniteNumber(value: string | null): number | undefined {
-  if (value === null) {
-    return undefined;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function toPositiveInteger(value: string | null): number | undefined {
-  const parsed = toFiniteNumber(value);
-  if (typeof parsed !== "number") {
-    return undefined;
-  }
-
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return undefined;
-  }
-
-  return parsed;
-}
-
-function parseTypes(value: string | null): CaptureType[] | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  const types = value
-    .split(",")
-    .map((segment) => segment.trim())
-    .filter((segment): segment is CaptureType => VALID_CAPTURE_TYPES.has(segment as CaptureType));
-
-  return types.length > 0 ? types : undefined;
-}
-
-function parseDevice(value: string | null): HeatmapQuery["device"] | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  if (!VALID_DEVICES.has(value as HeatmapQuery["device"])) {
-    return undefined;
-  }
-
-  return value as DeviceType | "all";
-}
-
-function parseQuery(searchParams: URLSearchParams): HeatmapQuery {
-  const query: HeatmapQuery = {};
-
-  const page = searchParams.get("page");
-  if (page) {
-    query.page = page;
-  }
-
-  const routeKey = searchParams.get("routeKey");
-  if (routeKey) {
-    query.routeKey = routeKey;
-  }
-
-  const sessionId = searchParams.get("sessionId");
-  if (sessionId) {
-    query.sessionId = sessionId;
-  }
-
-  const projectId = searchParams.get("projectId");
-  if (projectId) {
-    query.projectId = projectId;
-  }
-
-  const userId = searchParams.get("userId");
-  if (userId) {
-    query.userId = userId;
-  }
-
-  const from = toFiniteNumber(searchParams.get("from"));
-  if (typeof from === "number") {
-    query.from = from;
-  }
-
-  const to = toFiniteNumber(searchParams.get("to"));
-  if (typeof to === "number") {
-    query.to = to;
-  }
-
-  const types = parseTypes(searchParams.get("types"));
-  if (types) {
-    query.types = types;
-  }
-
-  const device = parseDevice(searchParams.get("device"));
-  if (device) {
-    query.device = device;
-  }
-
-  const limit = toPositiveInteger(searchParams.get("limit"));
-  if (typeof limit === "number") {
-    query.limit = limit;
-  }
-
-  return query;
-}
-
-function withCorsHeaders(response: Response, cors?: ClickmapRouteCorsOptions): Response {
-  if (!cors) {
-    return response;
-  }
-
-  const headers = new Headers(response.headers);
-  headers.set("access-control-allow-origin", cors.origin ?? "*");
-  headers.set(
-    "access-control-allow-methods",
-    (cors.methods ?? ["GET", "POST", "DELETE", "OPTIONS"]).join(", "),
-  );
-  headers.set(
-    "access-control-allow-headers",
-    (cors.headers ?? ["content-type", "authorization"]).join(", "),
-  );
-
-  if (typeof cors.maxAgeSeconds === "number" && cors.maxAgeSeconds > 0) {
-    headers.set("access-control-max-age", String(Math.floor(cors.maxAgeSeconds)));
-  }
-
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
-}
-
-function jsonResponse(payload: unknown, status = 200): Response {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-    },
-  });
-}
-
-type RouteListener = () => void;
-
-let isHistoryPatched = false;
-let pushStateOriginal: History["pushState"] | undefined;
-let replaceStateOriginal: History["replaceState"] | undefined;
-const routeListeners = new Set<RouteListener>();
-
-function notifyRouteListeners(): void {
-  for (const listener of routeListeners) {
-    listener();
+class HttpError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message);
   }
 }
-
-function patchHistoryOnce(): void {
-  if (isHistoryPatched || typeof window === "undefined") {
-    return;
-  }
-
-  pushStateOriginal = window.history.pushState;
-  replaceStateOriginal = window.history.replaceState;
-
-  window.history.pushState = function pushState(...args: Parameters<History["pushState"]>): void {
-    pushStateOriginal?.apply(window.history, args);
-    notifyRouteListeners();
-  };
-
-  window.history.replaceState = function replaceState(
-    ...args: Parameters<History["replaceState"]>
-  ): void {
-    replaceStateOriginal?.apply(window.history, args);
-    notifyRouteListeners();
-  };
-
-  window.addEventListener("popstate", notifyRouteListeners);
-  window.addEventListener("hashchange", notifyRouteListeners);
-  isHistoryPatched = true;
+function queryFrom(request: Request): HeatmapQuery {
+  const entries: Record<string, unknown> = {};
+  for (const [k, v] of new URL(request.url).searchParams)
+    entries[k] = ["from", "to", "limit", "viewportMin", "viewportMax"].includes(k)
+      ? Number(v)
+      : k === "types"
+        ? v.split(",")
+        : v;
+  return validateQuery(entries);
 }
-
-function unpatchHistory(): void {
-  if (!isHistoryPatched || typeof window === "undefined") {
-    return;
-  }
-
-  if (pushStateOriginal) {
-    window.history.pushState = pushStateOriginal;
-  }
-
-  if (replaceStateOriginal) {
-    window.history.replaceState = replaceStateOriginal;
-  }
-
-  window.removeEventListener("popstate", notifyRouteListeners);
-  window.removeEventListener("hashchange", notifyRouteListeners);
-
-  isHistoryPatched = false;
-  pushStateOriginal = undefined;
-  replaceStateOriginal = undefined;
-}
-
-function subscribeRouteKey(listener: RouteListener): () => void {
-  if (typeof window === "undefined") {
-    return () => {};
-  }
-
-  patchHistoryOnce();
-  routeListeners.add(listener);
-
-  return () => {
-    routeListeners.delete(listener);
-    if (routeListeners.size === 0) {
-      unpatchHistory();
-    }
-  };
-}
-
-function resolveRouteKey(includeSearch: boolean, fallbackPathname: string): string {
-  if (typeof window === "undefined") {
-    return fallbackPathname;
-  }
-
-  const pathname = window.location.pathname || fallbackPathname;
-  if (!includeSearch) {
-    return pathname;
-  }
-
-  const query = window.location.search;
-  return query ? `${pathname}${query}` : pathname;
-}
-
-function asErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Unexpected error";
-}
-
-async function parseEventsFromRequest(request: Request): Promise<CaptureEvent[]> {
-  const body = (await request.json()) as CaptureEvent[] | { events?: CaptureEvent[] } | null;
-
-  if (Array.isArray(body)) {
-    return body;
-  }
-
-  if (body && Array.isArray(body.events)) {
-    return body.events;
-  }
-
-  return [];
-}
-
-async function handleWithErrorBoundary(
-  request: Request,
-  options: ClickmapRouteHandlersOptions,
-  callback: () => Promise<Response>,
-): Promise<Response> {
+async function readJson(request: Request, maxBytes: number): Promise<unknown> {
+  if (Number(request.headers.get("content-length")) > maxBytes)
+    throw new HttpError(413, "Payload too large");
+  if (!request.body) throw new HttpError(400, "Missing body");
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let bytes = 0;
   try {
-    return withCorsHeaders(await callback(), options.cors);
-  } catch (error) {
-    if (options.onError) {
-      return withCorsHeaders(await options.onError(error, request), options.cors);
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      bytes += value.length;
+      if (bytes > maxBytes) {
+        await reader.cancel();
+        throw new HttpError(413, "Payload too large");
+      }
+      chunks.push(value);
     }
-
-    return withCorsHeaders(jsonResponse({ error: asErrorMessage(error) }, 500), options.cors);
+  } finally {
+    reader.releaseLock();
+  }
+  const body = new Uint8Array(bytes);
+  let offset = 0;
+  for (const c of chunks) {
+    body.set(c, offset);
+    offset += c.length;
+  }
+  try {
+    return JSON.parse(new TextDecoder().decode(body));
+  } catch {
+    throw new HttpError(400, "Invalid JSON");
   }
 }
-
-export function createNextFetchAdapter(options: NextFetchAdapterOptions = {}): ClickmapAdapter {
-  const endpoint = options.endpoint ?? "/api/clickmap";
-  const loadEndpoint = options.loadEndpoint ?? endpoint;
-  const deleteEndpoint = options.deleteEndpoint ?? loadEndpoint;
-
-  const fetchOptions = {
-    endpoint,
-    loadEndpoint,
-    deleteEndpoint,
-    ...(options.headers ? { headers: options.headers } : {}),
-    ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
-    ...(typeof options.preferBeacon === "boolean" ? { preferBeacon: options.preferBeacon } : {}),
-    ...(typeof options.keepalive === "boolean" ? { keepalive: options.keepalive } : {}),
-    ...(typeof options.maxPayloadBytes === "number"
-      ? { maxPayloadBytes: options.maxPayloadBytes }
-      : {}),
-  };
-
-  return fetchAdapter(fetchOptions);
-}
-
-export function useNextRouteKey(options: UseNextRouteKeyOptions = {}): string {
-  const includeSearch = options.includeSearch ?? true;
-  const fallbackPathname = options.fallbackPathname ?? "/";
-
-  return useSyncExternalStore(
-    subscribeRouteKey,
-    () => resolveRouteKey(includeSearch, fallbackPathname),
-    () => fallbackPathname,
-  );
-}
-
 export function createClickmapRouteHandlers(
   adapter: ClickmapAdapter,
-  options: ClickmapRouteHandlersOptions = {},
+  options: ClickmapRouteHandlersOptions,
 ): ClickmapRouteHandlers {
-  return {
-    OPTIONS: async () => {
-      return withCorsHeaders(new Response(null, { status: 204 }), options.cors);
-    },
-
-    GET: async (request) => {
-      return handleWithErrorBoundary(request, options, async () => {
-        const query = parseQuery(new URL(request.url).searchParams);
-        const events = await adapter.load(query);
-        return jsonResponse({ events }, 200);
+  if (!options?.projectId) throw new Error("Clickmap requires a server-owned projectId");
+  const origins =
+    options.allowedOrigins ??
+    (options.cors?.origin && options.cors.origin !== "*" ? [options.cors.origin] : []);
+  const handle: ClickmapRouteHandler = async (request) => {
+    const origin = request.headers.get("origin");
+    const reply = (value: unknown, status = 200) =>
+      new Response(value === null ? null : JSON.stringify(value), {
+        status,
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          ...(origin && origins.includes(origin)
+            ? {
+                "access-control-allow-origin": origin,
+                vary: "Origin",
+                "access-control-allow-methods": "GET,POST,DELETE,OPTIONS",
+                "access-control-allow-headers": "content-type,authorization",
+              }
+            : {}),
+        },
       });
-    },
-
-    POST: async (request) => {
-      return handleWithErrorBoundary(request, options, async () => {
-        const events = await parseEventsFromRequest(request);
-        await adapter.save(events);
-        return jsonResponse({ ok: true, saved: events.length }, 202);
-      });
-    },
-
-    DELETE: async (request) => {
-      return handleWithErrorBoundary(request, options, async () => {
-        if (!adapter.deleteEvents) {
-          return jsonResponse({ error: "Adapter does not implement deleteEvents" }, 405);
+    try {
+      if (origin && origin !== new URL(request.url).origin && !origins.includes(origin))
+        return reply({ error: "Origin denied" }, 403);
+      if (request.method === "OPTIONS") return reply(null, 204);
+      if (request.method === "POST") {
+        if (options.authorizeIngest && !(await options.authorizeIngest(request)))
+          return reply({ error: "Ingest denied" }, 403);
+        const body = await readJson(request, options.maxBodyBytes ?? 262144);
+        const raw = Array.isArray(body) ? body : (body as { events?: unknown })?.events;
+        let events: ReturnType<typeof validateEvents>;
+        try {
+          events = validateEvents(raw, options.maxBatchSize ?? 500);
+        } catch (e) {
+          throw new HttpError(400, (e as Error).message);
         }
-
-        const query = parseQuery(new URL(request.url).searchParams);
-        const deleted = await adapter.deleteEvents(query);
-        return jsonResponse({ ok: true, deleted }, 200);
-      });
-    },
+        if (events.some((e) => e.projectId !== options.projectId))
+          return reply({ error: "Project mismatch" }, 403);
+        await adapter.save(events.map((e) => ({ ...e, projectId: options.projectId })));
+        return reply({ ok: true, saved: events.length }, 202);
+      }
+      const operation = request.method === "DELETE" ? "delete" : "read";
+      if (!options.authorize || !(await options.authorize(request, operation)))
+        return reply({ error: "Authorization required" }, 401);
+      let query: HeatmapQuery;
+      try {
+        query = queryFrom(request);
+      } catch (e) {
+        throw new HttpError(400, (e as Error).message);
+      }
+      if (query.projectId && query.projectId !== options.projectId)
+        return reply({ error: "Project mismatch" }, 403);
+      query.projectId = options.projectId;
+      if (request.method === "DELETE") {
+        if (!adapter.deleteEvents) return reply({ error: "Deletion not supported" }, 405);
+        if (
+          !["page", "routeKey", "sessionId", "userId", "from", "to", "layoutId"].some(
+            (k) => query[k as keyof HeatmapQuery] !== undefined,
+          )
+        )
+          return reply({ error: "Deletion requires a narrower filter than project alone" }, 400);
+        return reply({ deleted: await adapter.deleteEvents(query) });
+      }
+      const cap = Math.min(query.limit ?? 10000, options.maxReadEvents ?? 10000);
+      const events = await adapter.load({ ...query, limit: cap + 1 });
+      if (events.length > cap)
+        return reply({ error: "Query exceeds result limit; narrow the cohort" }, 413);
+      return reply({ events, complete: true });
+    } catch (error) {
+      if (error instanceof HttpError) return reply({ error: error.message }, error.status);
+      if (options.onError) return options.onError(error, request);
+      return reply({ error: "Clickmap request failed" }, 500);
+    }
   };
+  return { GET: handle, POST: handle, DELETE: handle, OPTIONS: handle };
 }

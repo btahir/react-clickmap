@@ -1,0 +1,30 @@
+{
+  "name": "@react-clickmap/self-hosted",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 4315",
+    "build": "next build",
+    "start": "next start --port 4315",
+    "migrate": "node scripts/migrate.mjs",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "16.1.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "pg": "8.16.3",
+    "react-clickmap": "workspace:*",
+    "@react-clickmap/dashboard": "workspace:*",
+    "@react-clickmap/next": "workspace:*",
+    "@react-clickmap/postgres": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/pg": "8.16.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@types/node": "25.3.3",
+    "typescript": "5.9.2"
+  }
+}

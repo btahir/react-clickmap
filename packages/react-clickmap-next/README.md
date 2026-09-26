@@ -1,41 +1,52 @@
-# @react-clickmap/next
+# Next.js App Router Integration
 
-Next.js integration helpers for `react-clickmap`.
+Keep collection, inspection, and database access separate. Server credentials never belong in a client bundle.
 
 ## Install
 
-```bash
-pnpm add react-clickmap @react-clickmap/next
+```sh
+npm install react-clickmap @react-clickmap/next @react-clickmap/postgres pg
 ```
 
-## What this package provides
-
-- `createNextFetchAdapter`: Next-friendly fetch adapter defaults (`/api/clickmap`)
-- `createClickmapRouteHandlers`: Route handler factory for `GET`, `POST`, `DELETE`, `OPTIONS`
-- `useNextRouteKey`: App Router route key helper (`pathname + search`)
-
-## Example route handler
+Apply `POSTGRES_INIT_SQL` once during a controlled migration. Production uses your existing authentication, authorization and rate-limiting infrastructure.
 
 ```ts
-import { createClickmapRouteHandlers } from "@react-clickmap/next";
-import { memoryAdapter } from "react-clickmap";
+// app/api/clickmap/route.ts
+import {createClickmapRouteHandlers} from '@react-clickmap/next/server';
+import {createPostgresAdapter} from '@react-clickmap/postgres';
+import {Pool} from 'pg';
+import {isAuthorizedAnalyticsAdmin,allowIngest} from '@/lib/your-auth';
 
-const adapter = memoryAdapter();
-
-export const { GET, POST, DELETE } = createClickmapRouteHandlers(adapter);
+const pool = new Pool({connectionString:process.env.DATABASE_URL});
+const adapter = createPostgresAdapter({sql:pool});
+export const {GET,POST,DELETE,OPTIONS} = createClickmapRouteHandlers(adapter, {
+  projectId:'my-app',
+  authorize: async (request,operation) => isAuthorizedAnalyticsAdmin(request,operation),
+  authorizeIngest: request => allowIngest(request),
+  allowedOrigins:['https://your-app.example'],
+  maxBodyBytes:262144,
+  maxBatchSize:500,
+  maxReadEvents:10000,
+});
 ```
 
-## Example client usage
+`your-auth` above is an application integration point, not a provided authentication implementation. A complete runnable local example is in `apps/self-hosted`: it uses an administrator token held only in memory, an explicit local-origin allowlist, Postgres, and an app-embedded inspector. Put it behind HTTPS and your organization's auth before exposing it externally.
+
+Project scope is assigned by the server; mismatching client projects are rejected. GET/DELETE fail closed when `authorize` is absent. POST is intended for bounded ingestion and can use `authorizeIngest` for rate limits or application access. Origin checks are not bot protection or authorization. DELETE requires a narrower page/session/date filter; avoid accidental whole-project removal.
+
+## Client capture
 
 ```tsx
-"use client";
-
-import { useNextRouteKey } from "@react-clickmap/next";
-import { Heatmap } from "react-clickmap";
-import type { ClickmapAdapter } from "react-clickmap";
-
-export function Overlay({ adapter }: { adapter: ClickmapAdapter }) {
-  const routeKey = useNextRouteKey();
-  return <Heatmap adapter={adapter} routeKey={routeKey} />;
+'use client';
+import {ClickmapProvider,fetchAdapter} from 'react-clickmap';
+const adapter=fetchAdapter({endpoint:'/api/clickmap'});
+export function Capture({children,consent}){
+  return <ClickmapProvider adapter={adapter} projectId="my-app" layoutId="v1" consentRequired hasConsent={consent}>{children}</ClickmapProvider>;
 }
 ```
+
+Capture-only clients need no analytics read token. Administrator Studio uses a separately authorized fetch adapter. Use `@react-clickmap/next/client` for `useNextRouteKey`; its default now excludes search parameters. Pure server imports must use `/server` to avoid pulling React hooks into RSC server graphs.
+
+## Support this project
+
+[React Maintainer Support](https://react-tourlight.vercel.app/support) helps maintain Tourlight, Kino, Clickmap, and Redact. All features remain MIT licensed; support is optional, with recurring and one-time options.

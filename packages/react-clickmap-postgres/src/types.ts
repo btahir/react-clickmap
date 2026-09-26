@@ -5,8 +5,12 @@ export interface SqlQueryResult<Row = unknown> {
   rowCount?: number | null;
 }
 
-export interface SqlExecutor {
+export interface SqlConnection {
   query<Row = unknown>(text: string, params?: readonly unknown[]): Promise<SqlQueryResult<Row>>;
+}
+export interface SqlExecutor extends SqlConnection {
+  /** A pool must supply connect so transactions remain on one checked-out connection. */
+  connect?(): Promise<SqlConnection & { release(): void }>;
 }
 
 export interface PostgresAdapterOptions {
@@ -18,11 +22,12 @@ export interface PostgresAdapterOptions {
    */
   binsTableName?: string;
   /**
-   * When `true` (default), `loadAggregated` reads pre-computed daily bins for
+   * When `true` (default: false), `loadAggregated` reads pre-computed daily bins for
    * day-aligned ranges (see `rollupDaily`), falling back to raw aggregation
-   * otherwise. Set `false` to always aggregate raw events.
+   * otherwise or when weighted coverage differs from raw records.
    */
   preferDailyBins?: boolean;
+  elementsTableName?: string;
 }
 
 export interface RollupOptions {

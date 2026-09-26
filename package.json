@@ -10,10 +10,16 @@
     "test:run": "pnpm -r test:run",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "pnpm build && changeset publish"
+    "release": "pnpm build && changeset publish",
+    "test:tools": "node scripts/verify-tools.mjs",
+    "test:postgres": "node scripts/verify-postgres.mjs",
+    "test:browser": "playwright test",
+    "test:packed": "node scripts/verify-packed.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.4",
-    "@changesets/cli": "^2.29.7"
+    "@changesets/cli": "^2.29.7",
+    "@electric-sql/pglite": "0.3.14",
+    "@playwright/test": "1.58.2"
   }
 }

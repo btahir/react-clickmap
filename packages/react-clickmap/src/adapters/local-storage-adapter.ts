@@ -1,3 +1,4 @@
+import { validateEvents } from "../contracts";
 import type { CaptureEvent, ClickmapAdapter, HeatmapQuery } from "../types";
 import { memoryAdapter } from "./memory-adapter";
 
@@ -19,9 +20,11 @@ function readEvents(key: string): CaptureEvent[] {
     }
 
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as CaptureEvent[]) : [];
-  } catch {
-    return [];
+    return validateEvents(parsed, 100000);
+  } catch (error) {
+    throw new Error("Clickmap local store is unreadable; preserve it before recovery", {
+      cause: error,
+    });
   }
 }
 
@@ -32,8 +35,8 @@ function writeEvents(key: string, events: CaptureEvent[]): void {
 
   try {
     window.localStorage.setItem(key, JSON.stringify(events));
-  } catch {
-    // ignore storage write failures in constrained environments
+  } catch (error) {
+    throw new Error("Clickmap local store write failed", { cause: error });
   }
 }
 
@@ -45,7 +48,7 @@ export function localStorageAdapter(options: LocalStorageAdapterOptions = {}): C
     capabilities: {
       supportsAggregation: false,
       supportsRetention: false,
-      supportsIdempotency: false,
+      supportsIdempotency: true,
     },
 
     async save(events: CaptureEvent[]): Promise<void> {
@@ -55,7 +58,10 @@ export function localStorageAdapter(options: LocalStorageAdapterOptions = {}): C
       }
 
       const existing = readEvents(key);
-      writeEvents(key, existing.concat(events));
+      const mem = memoryAdapter(existing);
+      await mem.save(events);
+      if (mem.inspect().length > 100000) throw new Error("Clickmap local store limit reached");
+      writeEvents(key, mem.inspect());
     },
 
     async load(query: HeatmapQuery): Promise<CaptureEvent[]> {

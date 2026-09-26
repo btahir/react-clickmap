@@ -1,11 +1,9 @@
-export {
-  type ClickmapRouteCorsOptions,
-  type ClickmapRouteHandler,
-  type ClickmapRouteHandlers,
-  type ClickmapRouteHandlersOptions,
-  createClickmapRouteHandlers,
-  createNextFetchAdapter,
-  type NextFetchAdapterOptions,
-  type UseNextRouteKeyOptions,
-  useNextRouteKey,
+export type { NextFetchAdapterOptions, UseNextRouteKeyOptions } from "./client";
+export { createNextFetchAdapter, useNextRouteKey } from "./client";
+export type {
+  ClickmapRouteCorsOptions,
+  ClickmapRouteHandler,
+  ClickmapRouteHandlers,
+  ClickmapRouteHandlersOptions,
 } from "./server";
+export { createClickmapRouteHandlers } from "./server";

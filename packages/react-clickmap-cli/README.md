@@ -1,49 +1,19 @@
 # @react-clickmap/cli
 
-Local self-hosted preview API and dashboard for `react-clickmap`.
+## Local evidence tools
 
-## Install
-
-```bash
-pnpm add -D @react-clickmap/cli
+```sh
+npx @react-clickmap/cli --help
+react-clickmap serve --project demo --origin http://localhost:3000
+react-clickmap validate --file clickmap-evidence.json
+react-clickmap report --file clickmap-evidence.json --format markdown
+react-clickmap doctor --data .react-clickmap/events.json
+react-clickmap prune --data .react-clickmap/events.json --before 2026-01-01
+# Inspect the dry-run count, then add --apply to prune.
 ```
 
-Or run without installing:
+The collector binds to loopback, prints a session token for reads/deletes, and writes atomically. It is not a multi-process production database. CLI reports do not call an AI model. Exported IDs are pseudonymized and query strings/user IDs removed; application paths and target names still need review before sharing. The agent skill is shipped in the core package at `skills/clickmap/SKILL.md`.
 
-```bash
-npx @react-clickmap/cli
-```
+## Support this project
 
-## Start local preview
-
-```bash
-react-clickmap --port 3334
-```
-
-This starts:
-
-- Dashboard: `http://127.0.0.1:3334`
-- Ingest API: `http://127.0.0.1:3334/api/clickmap`
-- Local data file: `.react-clickmap/events.json`
-
-## CLI options
-
-```bash
-react-clickmap --host 0.0.0.0 --port 3334 --data ./tmp/clickmap-events.json
-```
-
-- `--host`: bind host (default `127.0.0.1`)
-- `--port`: bind port (default `3334`)
-- `--data`: path to JSON event store
-
-## React adapter wiring
-
-```ts
-import { createNextFetchAdapter } from "@react-clickmap/next";
-
-const adapter = createNextFetchAdapter({
-  endpoint: "http://127.0.0.1:3334/api/clickmap",
-});
-```
-
-Now your app sends events to the local preview dashboard.
+[React Maintainer Support](https://react-tourlight.vercel.app/support) helps maintain Tourlight, Kino, Clickmap, and Redact. All features remain MIT licensed; support is optional, with recurring and one-time options.

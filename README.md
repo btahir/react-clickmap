@@ -1,258 +1,98 @@
-<p align="center">
-  <img src="assets/readme-hero.gif" alt="react-clickmap demo" width="720" />
-</p>
+# react-clickmap
 
-<h1 align="center">react-clickmap</h1>
+**Find friction in your React app. Keep the evidence in your database.**
 
-<p align="center">
-  <strong>Privacy-first heatmaps for React. Your data, your database, zero cloud.</strong>
-</p>
+An MIT-licensed React collector with an optional inspection workbench, storage adapters, and local diagnostic tools. Capture clicks, scrolls, and frustration signals; inspect the actual app; export evidence you and your coding agent can read.
 
-<p align="center">
-  <a href="https://www.npmjs.com/package/react-clickmap"><img src="https://img.shields.io/npm/v/react-clickmap.svg?style=flat-square&color=5eead4" alt="npm version" /></a>
-  <a href="https://www.npmjs.com/package/react-clickmap"><img src="https://img.shields.io/npm/dm/react-clickmap.svg?style=flat-square&color=60a5fa" alt="npm downloads" /></a>
-  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow.svg?style=flat-square" alt="MIT license" /></a>
-  <a href="https://bundlephobia.com/package/react-clickmap"><img src="https://img.shields.io/bundlephobia/minzip/react-clickmap?style=flat-square&color=5eead4&label=bundle" alt="bundle size" /></a>
-</p>
-
-<p align="center">
-  Capture clicks, scroll depth, pointer movement, rage clicks, and dead clicks.<br/>
-  Render GPU-accelerated heatmap overlays. Ship changes based on real user behavior.<br/>
-  <strong>No third-party analytics. No monthly bills. No session caps.</strong>
-</p>
-
----
+[Working demo](https://react-clickmap.vercel.app/) · [Documentation](https://react-clickmap.vercel.app/docs) · [Source](https://github.com/btahir/react-clickmap)
 
 ## Install
 
-```bash
-npm install react-clickmap
+```sh
+npm install react-clickmap @react-clickmap/dashboard
 ```
 
-## Quickstart
+The Studio release is prepared in this branch. Until published, use the workspace instructions below; registry versions may not include Studio yet.
 
 ```tsx
-import { ClickmapProvider, Heatmap, fetchAdapter } from 'react-clickmap';
+'use client';
+import { ClickmapProvider, memoryAdapter } from 'react-clickmap';
+import { ClickmapStudio } from '@react-clickmap/dashboard';
 
-const adapter = fetchAdapter({ endpoint: '/api/clickmap' });
+// Module scope keeps the adapter stable. Memory is a local demo, not durable storage.
+const adapter = memoryAdapter();
 
-export function App() {
+export function Demo() {
   return (
-    <ClickmapProvider
-      adapter={adapter}
-      capture={['click', 'scroll', 'rage-click', 'dead-click']}
-      sampleRate={0.25}
-      respectDoNotTrack
-      respectGlobalPrivacyControl
-    >
-      <YourApp />
-      <Heatmap adapter={adapter} page="/pricing" type="heatmap" />
+    <ClickmapProvider adapter={adapter} projectId="demo" layoutId="pricing-v1">
+      <main>
+        <button data-clickmap-id="start-project">Start a project</button>
+      </main>
+      <ClickmapStudio adapter={adapter} projectId="demo" layoutId="pricing-v1" />
     </ClickmapProvider>
   );
 }
 ```
 
-That's it. Events are captured, batched, and persisted through your adapter. Render the overlay anywhere.
+Studio provides cohort filters, first-event diagnostics, element inspection, cumulative scroll reach, real heatmap overlays, JSON/Markdown/CSV export, overlay PNG, and local evidence import. It is a separate package; it never enters the collector bundle unless you import it. Put production Studio behind your application's admin authorization.
 
-## Why react-clickmap?
+## Persistence and access
 
-<table>
-<tr>
-<td width="50%">
+Use `fetchAdapter` to send events to your own endpoint. Public ingestion and authorized analytics reads/deletes have different access requirements. The Next.js server entry is **`@react-clickmap/next/server`**, with mandatory server-owned `projectId`; reads/deletes fail closed without an authorization callback. Ingestion validates event fields and byte/batch limits. Origin checks supplement authorization; configure your edge/server rate limits for a public deployment.
 
-### The old way
+[Complete Next.js recipe](https://react-clickmap.vercel.app/docs/guides/nextjs-app-router) · [Persistence](https://react-clickmap.vercel.app/docs/guides/persistence)
 
-- Pay $300+/mo for Hotjar, FullStory, or LogRocket
-- Hit session caps and sampling limits
-- Send your users' behavior data to third-party servers
-- Fight with cookie consent banners
-- Get vendor-locked into proprietary dashboards
+| Package | Role |
+| --- | --- |
+| `react-clickmap` | React capture, renderers, memory/localStorage/fetch adapters |
+| `react-clickmap/contracts` | Pure Node/browser validation, query matching, evidence and deterministic reports |
+| `@react-clickmap/dashboard` | Optional `ClickmapStudio` and embeddable dashboard |
+| `@react-clickmap/next` | Explicit `/server` and `/client` entries |
+| `@react-clickmap/postgres` | Durable storage, checked-out pool connections, scoped queries, rollups |
+| `@react-clickmap/supabase` | REST storage with verified pagination; aggregation is client-side |
+| `@react-clickmap/cli` | Loopback collector, evidence validation/reporting, local retention tools |
 
-</td>
-<td width="50%">
+## Privacy is a configuration, not a certification
 
-### The react-clickmap way
+DNT and GPC disable capture by default. Configure `consentRequired` and `hasConsent` for your application. Query strings are excluded from captured route keys. Generated selectors omit DOM IDs/classes; use deliberate `data-clickmap-id` values. Input/contenteditable selectors are masked by default, and `data-clickmap-ignore` excludes a subtree. `normalizeRoute` can replace identifier-bearing path segments; `beforeCapture` can redact or discard an event before transport. Layout IDs are application-controlled.
 
-- **Free and open source** — MIT licensed
-- **Unlimited sessions** — no artificial caps
-- **Self-hosted** — data stays in your Postgres/Supabase
-- **Privacy-first** — respects DNT and GPC out of the box
-- **React-native** — components, not script tags
+Events still contain pseudonymous session IDs, paths, coordinates, and optional user IDs. Masking a selector does not erase coordinates. Avoid sensitive content in paths and stable IDs. Cookie-free collection does not establish consent or legal compliance. Inspect payloads and your own deployment requirements.
 
-</td>
-</tr>
-</table>
+## Read metrics correctly
 
-## Features
+Observed sessions are sessions with captured interactions, **not all visitors**. Scroll reach counts one maximum per project/session/route/layout; repeated visits in the same session are combined. Dead/rage clicks are heuristics. Event shares are not conversion or failure rates. Studio warns about small samples and bounded datasets. Overlay coordinates cannot reconstruct an older or differently sized page; select a compatible cohort.
 
-<p align="center">
-  <img src="assets/feature-showcase.png" alt="Feature overview" width="720" />
-</p>
+## Local evidence tools
 
-### Capture
-
-| Event Type | Description |
-|---|---|
-| **Click** | Every click, recorded in both viewport-relative and document-relative (full-page) coordinates |
-| **Rage Click** | Rapid repeated clicks on the same target — UX frustration signal |
-| **Dead Click** | Clicks on non-interactive elements — layout confusion signal |
-| **Scroll Depth** | How far users scroll, with max-depth tracking |
-| **Pointer Move** | Mouse/touch movement for attention heatmaps |
-
-Each type in `capture` is gated independently — `capture={['dead-click']}` captures dead clicks without also storing every plain click. Add `'click'` explicitly if you want raw clicks recorded too.
-
-### Render
-
-| Component | Purpose |
-|---|---|
-| `<Heatmap>` | Viewport or full-page (`coordinateSpace="document"`) heatmap, clickmap, or scrollmap overlay |
-| `<AttentionHeatmap>` | Pointer-move attention visualization (viewport or document space) |
-| `<ScrollDepth>` | Horizontal scroll-depth bands |
-| `<ComparisonHeatmap>` | Side-by-side A/B heatmap comparison |
-| `<HeatmapThumbnail>` | Mini heatmap preview cards |
-| `<ElementClickOverlay>` | Per-element click count badges (viewport or document space) |
-
-**Full-page heatmaps.** Long scrollable pages need document-relative coordinates, not viewport-relative ones. Pass `coordinateSpace="document"` to `<Heatmap>` / `<AttentionHeatmap>` / `<ElementClickOverlay>` to render an overlay that spans the entire document height and places points from the document-relative coordinates captured on every event. The default (`"viewport"`) is unchanged. See the [core package README](./packages/react-clickmap/README.md#full-page-document-relative-heatmaps).
-
-### Rendering Engine
-
-- **WebGL-first** with automatic Canvas fallback (WebGL2 > WebGL1 > Canvas2D)
-- GPU-accelerated radial gradient blending, with your custom `gradient` palette honored on both the WebGL and Canvas renderers
-- Handles context loss/restore gracefully
-- Gradient palette memoization for consistent colors
-
-### Privacy
-
-```tsx
-<ClickmapProvider
-  respectDoNotTrack        // Honors navigator.doNotTrack
-  respectGlobalPrivacyControl  // Honors navigator.globalPrivacyControl
-  sampleRate={0.25}        // Only capture 25% of sessions
-  maskSelectors={['.pii-field', '[data-sensitive]']}
-/>
+```sh
+npx @react-clickmap/cli --help
+react-clickmap serve --project demo --origin http://localhost:3000
+react-clickmap validate --file clickmap-evidence.json
+react-clickmap report --file clickmap-evidence.json --format markdown
+react-clickmap doctor --data .react-clickmap/events.json
+react-clickmap prune --data .react-clickmap/events.json --before 2026-01-01
+# Inspect the dry-run count, then add --apply to prune.
 ```
 
-No cookies. No fingerprinting. No PII collection. Fully GDPR/CCPA compatible.
+The collector binds to loopback, prints a session token for reads/deletes, and writes atomically. It is not a multi-process production database. CLI reports do not call an AI model. Exported IDs are pseudonymized and query strings/user IDs removed; application paths and target names still need review before sharing. The agent skill is shipped in the core package at `skills/clickmap/SKILL.md`.
 
-## Architecture
+## Run the workspace
 
-```
-Browser                         Your Server
-┌─────────────────┐             ┌──────────────────┐
-│  ClickmapProvider│            │  API endpoint     │
-│  ├─ Click tracker│  ──batch──▶│  ├─ Postgres      │
-│  ├─ Scroll tracker│           │  ├─ Supabase      │
-│  ├─ Pointer tracker│          │  └─ Custom adapter │
-│  └─ Event batcher │          └──────────────────┘
-│                   │                    │
-│  Heatmap / Overlay│  ◀──load────────────┘
-└─────────────────┘
+Use Node 22+ and pnpm 9.
+
+```sh
+pnpm install --frozen-lockfile
+pnpm --filter react-clickmap build
+pnpm --filter @react-clickmap/dashboard build
+pnpm --filter @react-clickmap/docs dev
 ```
 
-<p align="center">
-  <img src="assets/readme-architecture.svg" alt="Architecture diagram" width="760" />
-</p>
+The demo explicitly labels synthetic data and lets you capture only your own tab into memory. Reloading clears it. No telemetry is sent to the maintainer.
 
-## Ecosystem
+## Independent maintenance
 
-| Package | Description |
-|---|---|
-| [`react-clickmap`](packages/react-clickmap) | Core library — capture engine, adapters, rendering components |
-| [`@react-clickmap/postgres`](packages/react-clickmap-postgres) | Postgres persistence adapter with parameterized queries |
-| [`@react-clickmap/supabase`](packages/react-clickmap-supabase) | Supabase adapter — zero backend code needed |
-| [`@react-clickmap/next`](packages/react-clickmap-next) | Next.js helpers — App Router API routes and server components |
-| [`@react-clickmap/dashboard`](packages/react-clickmap-dashboard) | Pre-built analytics dashboard components |
-| [`@react-clickmap/cli`](packages/react-clickmap-cli) | Local preview CLI — visualize heatmaps without deploying |
+Tourlight, Kino, Clickmap, and Redact remain free and MIT licensed. Shared **React Maintainer Support** helps fund maintenance, documentation, compatibility updates, and development across all four. Sponsorship is voluntary and gives no exclusive features; support is shared across the React package family. No payment integration is required to use these packages.
 
-## Persistence
+[License](https://github.com/btahir/react-clickmap/blob/main/LICENSE)
 
-The core library is storage-agnostic. Use a built-in adapter or write your own:
-
-### Option 1: Postgres (recommended)
-
-```bash
-npm install @react-clickmap/postgres
-```
-
-Apply the schema first — run [`sql/0001_init.sql`](packages/react-clickmap-postgres/sql/0001_init.sql) then [`sql/0002_document_coordinates.sql`](packages/react-clickmap-postgres/sql/0002_document_coordinates.sql) against your database, then wire up the adapter:
-
-```ts
-import { createPostgresAdapter } from '@react-clickmap/postgres';
-
-const adapter = createPostgresAdapter({
-  sql: pool, // any object with query(text, params) => { rows, rowCount }
-});
-```
-
-Batches are inserted with parameterized multi-row `INSERT`s, wrapped in a transaction when a flush spans more than one statement.
-
-**Server-side aggregation.** Schedule `rollupDaily(sql, { day })` (cron / `pg_cron` / serverless schedule) to pre-aggregate each day into the daily bin tables. `loadAggregated()` then serves day-aligned ranges from those tables instead of scanning raw events, for both viewport and full-page (`coordinateSpace: "document"`) heatmaps. See the [postgres package README](packages/react-clickmap-postgres/README.md#server-side-aggregation-daily-rollups).
-
-### Option 2: Supabase
-
-```bash
-npm install @react-clickmap/supabase
-```
-
-```ts
-import { createSupabaseAdapter } from '@react-clickmap/supabase';
-
-const adapter = createSupabaseAdapter({
-  url: process.env.SUPABASE_URL,
-  anonKey: process.env.SUPABASE_ANON_KEY,
-});
-```
-
-Saves are chunked automatically to stay under PostgREST's request size limits. Aggregation (`loadAggregated`) is done client-side by reducing loaded rows in JS, not in SQL, so the adapter honestly reports `supportsAggregation: false` — use the Postgres adapter if you need server-side binning for large datasets.
-
-### Option 3: Custom adapter
-
-```ts
-const adapter = createAdapter({
-  save: async (events) => { /* your logic */ },
-  load: async (query) => { /* your logic */ },
-});
-```
-
-## Next.js Integration
-
-```bash
-npm install @react-clickmap/next
-```
-
-Works with the App Router out of the box. See the [Next.js guide](apps/docs/content/guides/nextjs-app-router.md) for setup details.
-
-## Bundle Size
-
-The core library ships under **13 KB** gzipped. Tree-shakeable ESM-only build — you only pay for what you import.
-
-## Documentation
-
-| Topic | Link |
-|---|---|
-| Getting Started | [`apps/docs/content/getting-started.md`](apps/docs/content/getting-started.md) |
-| Privacy & Consent | [`apps/docs/content/guides/privacy-consent.md`](apps/docs/content/guides/privacy-consent.md) |
-| Persistence Guide | [`apps/docs/content/guides/persistence.md`](apps/docs/content/guides/persistence.md) |
-| Next.js App Router | [`apps/docs/content/guides/nextjs-app-router.md`](apps/docs/content/guides/nextjs-app-router.md) |
-| Rendering Performance | [`apps/docs/content/guides/rendering-performance.md`](apps/docs/content/guides/rendering-performance.md) |
-| API: Components | [`apps/docs/content/api/components.md`](apps/docs/content/api/components.md) |
-| API: Adapters | [`apps/docs/content/api/adapters.md`](apps/docs/content/api/adapters.md) |
-| API: Events | [`apps/docs/content/api/events.md`](apps/docs/content/api/events.md) |
-
-## Launch Video
-
-[![Watch the launch video](assets/launch-thumbnail.png)](assets/launch-video.mp4)
-
-## Contributing
-
-```bash
-git clone https://github.com/btahir/react-clickmap.git
-cd react-clickmap
-npm install
-npm run build
-npm test
-```
-
-## License
-
-[MIT](./LICENSE) — free for personal and commercial use.
+[Support this project](https://react-tourlight.vercel.app/support)

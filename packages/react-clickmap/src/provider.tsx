@@ -1,7 +1,11 @@
 "use client";
 
 import { createContext, type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
-import { type CaptureEngine, createCaptureEngine } from "./capture/engine";
+import {
+  type CaptureEngine,
+  type CaptureEngineOptions,
+  createCaptureEngine,
+} from "./capture/engine";
 import { getOrCreateSessionId } from "./capture/session";
 import {
   type ClickmapRuntimeStore,
@@ -15,6 +19,9 @@ const DEFAULT_MASK_SELECTORS = ["input", "textarea", "[contenteditable]", "[data
 
 export interface ClickmapProviderProps {
   adapter: ClickmapAdapter;
+  layoutId?: string;
+  normalizeRoute?: CaptureEngineOptions["normalizeRoute"];
+  beforeCapture?: CaptureEngineOptions["beforeCapture"];
   projectId?: string;
   userId?: string;
   capture?: CaptureType[];
@@ -73,6 +80,9 @@ function serializeStringArray(values: string[]): string {
 export function ClickmapProvider({
   adapter,
   projectId = "default",
+  layoutId,
+  normalizeRoute,
+  beforeCapture,
   userId,
   capture = DEFAULT_CAPTURE,
   sampleRate = 1,
@@ -138,6 +148,9 @@ export function ClickmapProvider({
   useEffect(() => {
     const engine = createCaptureEngine({
       adapter,
+      ...(layoutId ? { layoutId } : {}),
+      ...(normalizeRoute ? { normalizeRoute } : {}),
+      ...(beforeCapture ? { beforeCapture } : {}),
       capture: captureRef.current,
       projectId,
       sessionId,
@@ -177,6 +190,9 @@ export function ClickmapProvider({
     };
   }, [
     adapter,
+    layoutId,
+    normalizeRoute,
+    beforeCapture,
     captureKey,
     consentRequired,
     enabled,

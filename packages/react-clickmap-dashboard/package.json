@@ -1,6 +1,6 @@
 {
   "name": "@react-clickmap/dashboard",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Batteries-included dashboard components for react-clickmap.",
   "license": "MIT",
   "type": "module",
@@ -17,7 +17,8 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "sideEffects": false,
   "keywords": [
@@ -47,5 +48,18 @@
     "tsup": "^8.5.0",
     "typescript": "^5.9.2",
     "vitest": "^4.0.7"
+  },
+  "homepage": "https://react-clickmap.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/btahir/react-clickmap.git",
+    "directory": "packages/react-clickmap-dashboard"
+  },
+  "bugs": {
+    "url": "https://github.com/btahir/react-clickmap/issues"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://react-tourlight.vercel.app/support"
   }
 }

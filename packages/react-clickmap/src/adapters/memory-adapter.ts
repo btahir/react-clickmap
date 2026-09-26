@@ -1,44 +1,5 @@
+import { matchesQuery } from "../contracts";
 import type { CaptureEvent, ClickmapAdapter, HeatmapQuery } from "../types";
-
-function matchesQuery(event: CaptureEvent, query: HeatmapQuery): boolean {
-  if (query.page && event.pathname !== query.page) {
-    return false;
-  }
-
-  if (query.routeKey && event.routeKey !== query.routeKey) {
-    return false;
-  }
-
-  if (query.sessionId && event.sessionId !== query.sessionId) {
-    return false;
-  }
-
-  if (query.projectId && event.projectId !== query.projectId) {
-    return false;
-  }
-
-  if (query.userId && event.userId !== query.userId) {
-    return false;
-  }
-
-  if (query.device && query.device !== "all" && event.deviceType !== query.device) {
-    return false;
-  }
-
-  if (query.types && query.types.length > 0 && !query.types.includes(event.type)) {
-    return false;
-  }
-
-  if (typeof query.from === "number" && event.timestamp < query.from) {
-    return false;
-  }
-
-  if (typeof query.to === "number" && event.timestamp > query.to) {
-    return false;
-  }
-
-  return true;
-}
 
 export interface MemoryAdapter extends ClickmapAdapter {
   clear(): void;
@@ -52,11 +13,18 @@ export function memoryAdapter(seedEvents: CaptureEvent[] = []): MemoryAdapter {
     capabilities: {
       supportsAggregation: false,
       supportsRetention: false,
-      supportsIdempotency: false,
+      supportsIdempotency: true,
     },
 
     async save(captureEvents: CaptureEvent[]): Promise<void> {
-      events.push(...captureEvents);
+      const ids = new Set(events.map((e) => e.eventId));
+      events.push(
+        ...captureEvents.filter((e) => {
+          if (ids.has(e.eventId)) return false;
+          ids.add(e.eventId);
+          return true;
+        }),
+      );
     },
 
     async load(query: HeatmapQuery): Promise<CaptureEvent[]> {

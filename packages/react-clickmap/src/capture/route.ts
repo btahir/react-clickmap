@@ -11,7 +11,7 @@ export function getCurrentRouteKey(): string {
     return "/";
   }
 
-  return `${window.location.pathname}${window.location.search}`;
+  return window.location.pathname;
 }
 
 type RouteChangeListener = () => void;

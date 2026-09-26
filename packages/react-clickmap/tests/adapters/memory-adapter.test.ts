@@ -8,7 +8,7 @@ describe("memoryAdapter", () => {
     expect(adapter.capabilities).toEqual({
       supportsAggregation: false,
       supportsRetention: false,
-      supportsIdempotency: false,
+      supportsIdempotency: true,
     });
   });
 

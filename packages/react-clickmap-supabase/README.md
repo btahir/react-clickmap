@@ -79,3 +79,13 @@ $$;
 
 select cron.schedule('clickmap-rollup', '0 1 * * *', $$ select clickmap_rollup_day(current_date - 1) $$);
 ```
+
+## Complete reads and access
+
+Reads traverse deterministic `occurred_at,event_id` pages using Content-Range totals. Missing totals, inconsistent empty pages, or an exceeded read ceiling fail rather than returning a silently partial aggregate. `maxReadEvents` bounds the total; narrow the query when exceeded. Supabase aggregation remains client-side.
+
+Use an authorized server endpoint for admin reads/deletes. If exposing a table through the Data API, enable RLS and define project ownership policies; an anon key is not authorization. Never expose a service-role/secret key in the browser. The adapter does not create policies or infer tenancy for you.
+
+## Support this project
+
+[React Maintainer Support](https://react-tourlight.vercel.app/support) helps maintain Tourlight, Kino, Clickmap, and Redact. All features remain MIT licensed; support is optional, with recurring and one-time options.

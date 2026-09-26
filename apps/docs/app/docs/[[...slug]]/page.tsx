@@ -45,6 +45,7 @@ export async function generateMetadata({ params }: DocsPageProps): Promise<Metad
   if (slug.length === 0) {
     return {
       title: "Documentation",
+      alternates: { canonical: "/docs" },
       description:
         "Browse guides, API references, and practical examples for integrating react-clickmap into your React app.",
     };
@@ -57,6 +58,7 @@ export async function generateMetadata({ params }: DocsPageProps): Promise<Metad
 
   return {
     title: doc.title,
+    alternates: { canonical: `/docs/${slug.join("/")}` },
     description: doc.description,
     openGraph: {
       title: `${doc.title} | react-clickmap`,
@@ -83,8 +85,12 @@ export default async function DocsPage({ params }: DocsPageProps) {
             react-clickmap
           </Link>
           <nav className="docs-nav-links">
-            <Link href="/docs" className="nav-link active">Docs</Link>
-            <Link href="/docs/getting-started" className="nav-link">Get Started</Link>
+            <Link href="/docs" className="nav-link active">
+              Docs
+            </Link>
+            <Link href="/docs/getting-started" className="nav-link">
+              Get Started
+            </Link>
           </nav>
         </header>
 
@@ -93,8 +99,8 @@ export default async function DocsPage({ params }: DocsPageProps) {
             <p className="doc-meta">Documentation</p>
             <h1 className="doc-title">Learn react-clickmap</h1>
             <p className="doc-description">
-              Guides, API references, and practical examples for building
-              privacy-first heatmap analytics.
+              Guides, API references, and practical examples for building privacy-first heatmap
+              analytics.
             </p>
           </div>
 
@@ -143,8 +149,12 @@ export default async function DocsPage({ params }: DocsPageProps) {
           react-clickmap
         </Link>
         <nav className="docs-nav-links">
-          <Link href="/docs" className="nav-link">Docs</Link>
-          <Link href="/docs/getting-started" className="nav-link">Get Started</Link>
+          <Link href="/docs" className="nav-link">
+            Docs
+          </Link>
+          <Link href="/docs/getting-started" className="nav-link">
+            Get Started
+          </Link>
         </nav>
       </header>
 

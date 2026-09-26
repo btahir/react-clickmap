@@ -1,5 +1,20 @@
 # @react-clickmap/dashboard
 
+## 0.2.0
+
+### Minor Changes
+
+- Add an app-embedded Clickmap Studio with real capture diagnostics, cohort filters, target inspection, guarded overlays, and portable versioned JSON/Markdown/CSV/PNG evidence. Ship local deterministic evidence validation/reporting tools and a self-hosted Next/Postgres example.
+
+  Harden ingestion, project boundaries and authenticated reads/deletes; preserve route privacy and stable target/layout identity. Correct session-route-revision scroll denominators, bounded Supabase pagination, Postgres pool transactions and rollup invalidation/coverage. Time queries now use inclusive `from` and exclusive `to`. Existing Next handler consumers must provide a server-owned project and read/delete authorization.
+
+  Update package and site documentation with explicit measurement/privacy limits, server/client entry guidance, discovery files and shared maintainer support.
+
+### Patch Changes
+
+- Updated dependencies
+  - react-clickmap@0.4.0
+
 ## 0.1.2
 
 ### Patch Changes

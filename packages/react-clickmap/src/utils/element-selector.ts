@@ -4,17 +4,8 @@ export interface SelectorOptions {
   maskSelectors?: string[];
 }
 
-function toCssSafeClassName(className: string): string {
-  const value = className.trim();
-  if (!value) {
-    return "";
-  }
-
-  return value.replace(/[^a-zA-Z0-9_-]/g, "");
-}
-
 export function isMaskedElement(element: Element, selectors: string[] = []): boolean {
-  const active = selectors.length > 0 ? selectors : DEFAULT_MASK_SELECTORS;
+  const active = [...DEFAULT_MASK_SELECTORS, ...selectors];
   return active.some((selector) => element.closest(selector) !== null);
 }
 
@@ -44,22 +35,13 @@ export function getElementSelector(
   let depth = 0;
 
   while (current && depth < 5) {
-    if (current.id) {
-      segments.unshift(`#${current.id}`);
+    const stableId = current.getAttribute("data-clickmap-id");
+    if (stableId && /^[a-zA-Z0-9_-]{1,100}$/.test(stableId)) {
+      segments.unshift(`[data-clickmap-id="${stableId}"]`);
       break;
     }
-
     const tagName = current.tagName.toLowerCase();
-    const rawClassName =
-      typeof current.className === "string"
-        ? current.className
-        : (current.getAttribute("class") ?? "");
-    const classNames = rawClassName
-      .split(/\s+/)
-      .map((value) => toCssSafeClassName(value))
-      .filter(Boolean)
-      .slice(0, 2)
-      .join(".");
+    const classNames = "";
 
     const parent = current.parentElement;
     const siblingIndex = parent
