@@ -43,3 +43,7 @@ No hosted Supabase instance, production Postgres pool under concurrent load, RLS
 Offset pagination is deterministic for unchanged data but not a transaction snapshot of concurrent writes/deletes. CLI storage is intentionally single-process; localStorage is single-tab best effort. The example rate limiter is process-local, and its bearer token is a minimal development example rather than a replacement for organization authentication. Out-of-process retention jobs must use the same rollup invalidation rules.
 
 Studio browser tests download and inspect JSON, Markdown, CSV and PNG signatures; PNG remains an overlay-only canvas export, not DOM screenshot capture. Stable IDs/layout revisions and normalized paths are application responsibilities. No evidence here proves conversion improvements or that capture covers all visitors.
+
+## Clean docs build follow-up
+
+After deleting generated package `dist` files, running the hosting command `pnpm run build` directly in `apps/docs` reproduced missing-module errors for `react-clickmap` and `@react-clickmap/dashboard`. The docs build now builds its workspace dependency closure in topological order before Next. The canonical root build runs workspaces serially so that dependency rebuilding cannot remove `dist` while another app consumes it. Both the exact docs-root command and the canonical root build passed after this change. This fixes the reproduced local clean-artifact failure; the hosted preview must still be checked separately after pushing.
