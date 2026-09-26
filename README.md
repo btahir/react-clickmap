@@ -12,7 +12,7 @@ An MIT-licensed React collector with an optional inspection workbench, storage a
 npm install react-clickmap @react-clickmap/dashboard
 ```
 
-The Studio release is prepared in this branch. Until published, use the workspace instructions below; registry versions may not include Studio yet.
+Studio is available in `react-clickmap@0.4.0` and `@react-clickmap/dashboard@0.2.0` or later.
 
 ```tsx
 'use client';
